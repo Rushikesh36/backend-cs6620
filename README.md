@@ -1,6 +1,6 @@
 # Unified Security Hub: backend and infrastructure
 
-Backend and AWS infrastructure for Unified Security Hub (CS6620 Cloud Computing, Northeastern University, Team 6). It holds the Lambda code, the shared helpers they use, and the Terraform that builds everything in an AWS Learner Lab. The dashboard's code lives in the separate frontend repo (`cs6620-frontend`); this repo creates the S3 website it is served from.
+Backend and AWS infrastructure for Unified Security Hub (CS6620 Cloud Computing, Northeastern University, Team 6). It holds the Lambda code, the shared helpers they use, and the Terraform that builds everything in an AWS Learner Lab. The dashboard's code lives in the separate frontend repo (`cs6620-frontend`) and is hosted by hand in its own S3 bucket, outside this repo's Terraform.
 
 Progress and decisions are tracked in [TASKS.md](TASKS.md). The table design is in [docs/data-model.md](docs/data-model.md).
 
@@ -20,15 +20,13 @@ Progress and decisions are tracked in [TASKS.md](TASKS.md). The table design is 
 
 ## What is built so far
 
-| Piece                                                            | Where                                                    |
-| ---------------------------------------------------------------- | -------------------------------------------------------- |
-| DynamoDB tables: users, jobs (3 indexes), findings               | `terraform/dynamodb.tf`                                  |
-| Dashboard website: bucket settings, public read, `config.json`   | `terraform/frontend.tf`, bucket from `create-buckets.sh` |
-| Shared Lambda code: responses, errors, validation, logging, JWT  | `common/`                                                |
-| `add-user` script to create login users                          | `scripts/add_user.ts`                                    |
-| Not yet: API Gateway, Lambdas, SQS, Fargate scanners, SNS alerts | see [TASKS.md](TASKS.md)                                 |
-
-Until the API Gateway exists (Task 9), the dashboard's `config.json` points at a placeholder address, so the site loads but logging in fails.
+| Piece                                                            | Where                       |
+| ---------------------------------------------------------------- | --------------------------- |
+| DynamoDB tables: users, jobs (3 indexes), findings               | `terraform/dynamodb.tf`     |
+| Shared Lambda code: responses, errors, validation, logging, JWT  | `common/`                   |
+| `add-user` script to create login users                          | `scripts/add_user.ts`       |
+| Script that creates S3 buckets (Learner Lab workaround)          | `scripts/create-buckets.sh` |
+| Not yet: API Gateway, Lambdas, SQS, Fargate scanners, SNS alerts | see [TASKS.md](TASKS.md)    |
 
 ## Repo layout
 
@@ -99,8 +97,8 @@ aws ec2 describe-subnets --filters Name=default-for-az,Values=true --query "Subn
 ```
 
 - `environment` and `name_prefix`: your name, for example `shreya` and `shreya-sh`. The prefix starts every resource name.
-- `frontend_bucket_name`: must be unique across **all of AWS**, for example `shreya-sh-dashboard`.
-- `allowed_origin`: `http://<frontend_bucket_name>.s3-website-us-east-1.amazonaws.com`
+- `frontend_bucket_name`: the bucket your dashboard is hosted in. You set that bucket up by hand (see the frontend repo); this repo only needs its name.
+- `allowed_origin`: the dashboard's address, `http://<frontend_bucket_name>.s3-website-us-east-1.amazonaws.com`. The API and the upload bucket allow browser requests from this address only (CORS).
 - Scanner images, `alert_email` and `juice_shop_url` can stay as placeholders until their tasks are built.
 
 **2. Create the S3 buckets.** Terraform cannot do this in Learner Lab (see [restrictions](#learner-lab-restrictions)):
@@ -108,6 +106,8 @@ aws ec2 describe-subnets --filters Name=default-for-az,Values=true --query "Subn
 ```bash
 scripts/create-buckets.sh terraform/env/<yourname>.tfvars
 ```
+
+It creates every `*_bucket_name` in your tfvars except `frontend_bucket_name`. Until the upload and report buckets are added (Task 11), it prints "Nothing to create".
 
 **3. Build everything else:**
 
@@ -119,15 +119,7 @@ terraform -chdir=terraform init
 terraform -chdir=terraform apply -var-file=env/<yourname>.tfvars
 ```
 
-Check the list, type `yes`, and note the `website_url` it prints.
-
-**4. Put the dashboard on the website.** In the frontend repo:
-
-```bash
-scripts/deploy.sh <frontend_bucket_name>
-```
-
-Open `website_url`. The login page should load.
+Check the list and type `yes`.
 
 ## Day to day
 
@@ -154,10 +146,22 @@ These shape the code. Please keep them in mind when adding resources.
 
 - **No new IAM roles.** Every Lambda and Fargate task uses the existing `LabRole` (`lab_role_arn`).
 - **Terraform cannot manage S3 buckets.** AWS Academy's service control policy denies `s3:GetBucketObjectLockConfiguration`, and Terraform's `aws_s3_bucket` resource reads it after every create and refresh (checked with AWS provider 5.100 and 6.70), so the apply fails with `AccessDenied ... explicit deny in a service control policy`. No setting in the lab can change this. So:
-  - Create buckets with `scripts/create-buckets.sh`, which creates every `*_bucket_name` in your tfvars.
-  - In Terraform, look the bucket up with `data "aws_s3_bucket"` and attach everything else to it (website settings, policies, CORS, lifecycle rules, objects). These do not need the blocked permission. See `terraform/frontend.tf`.
+  - Create buckets with `scripts/create-buckets.sh`. Add a new bucket as a `<something>_bucket_name` variable and the script picks it up.
+  - In Terraform, look the bucket up by name and attach everything else to it (CORS, lifecycle rules, policies, notifications, objects). These do not need the blocked permission:
+
+    ```hcl
+    data "aws_s3_bucket" "uploads" {
+      bucket = var.uploads_bucket_name
+    }
+
+    resource "aws_s3_bucket_cors_configuration" "uploads" {
+      bucket = data.aws_s3_bucket.uploads.id
+      # ...
+    }
+    ```
+
   - Do **not** add `resource "aws_s3_bucket"` blocks.
-- **Public website.** `frontend.tf` turns off the account-wide "block public policies" setting (ACLs stay blocked) so the dashboard bucket can be public. It applies to the whole lab account.
+  - This was tested in a Learner Lab: creating the bucket with the script, then website settings, a bucket policy, a public access block and an object on it through Terraform all applied, and a second `plan` showed no changes.
 - **Region** is always `us-east-1`.
 
 ## Development commands
