@@ -32,7 +32,7 @@ Statuses: Not started / In progress / In review / Changes requested / Approved /
 | 22  | Terraform: ECS cluster, task definitions, network/security groups, EventBridge task-state rule                            | Not started | 19, 20, 21 |
 | 23  | Reaper Lambda (stuck jobs, stops tasks) + schedule + tests                                                                | Not started | 22         |
 | 24  | Alerts (SNS email when newHigh >= 1) + tests                                                                              | Not started | 19         |
-| 25  | Frontend bucket website settings + `config.json` object from Terraform                                                    | Not started | 9          |
+| 25  | Frontend bucket website settings + `config.json` object from Terraform                                                    | In review   | 9          |
 | 26  | Contract tests (JSON Schemas for every response) + `scripts/smoke.sh`                                                     | Not started | 18, 15     |
 | 27  | Docs (contract, architecture, runbook), README, GitHub Actions CI (lint, test, terraform fmt/validate)                    | Not started | all        |
 
@@ -56,6 +56,9 @@ Statuses: Not started / In progress / In review / Changes requested / Approved /
 - bcrypt cost 10 (bcryptjs), shared constant in common/passwords.ts; login must use the same cost for its dummy hash. New passwords: 12 to 72 bytes (bcrypt ignores bytes past 72). Login (Task 7) must also reject passwords over 72 bytes with 400.
 - add_user is TypeScript run with tsx (`npm run add-user`); password only via hidden prompt or --password-stdin, never argv; `--update` does not touch the `disabled` flag.
 - Known: `npm audit` shows 6 dev-only advisories (vitest/vite/esbuild dev servers); 0 in runtime deps. Upgrading vitest hit a peer-dependency conflict; revisit later.
+- Learner Lab's service control policy denies `s3:GetBucketObjectLockConfiguration`, which `aws_s3_bucket` reads on every create and refresh (provider 5.100 and 6.70 both fail). Buckets are created by `scripts/create-buckets.sh` (every `*_bucket_name` in the tfvars) and looked up in Terraform with `data "aws_s3_bucket"`; website, policy, CORS, lifecycle and objects stay Terraform resources. Applies to Task 11's buckets too.
+- Task 25 (started before Task 9, Geethanjali): `frontend.tf` sets website hosting (`index.html`, `404.html`), public read, and `config.json` (`no-cache`). Its `apiBaseUrl` is a placeholder until Task 9 replaces it with the API endpoint. It also manages the account-level public access block (policies allowed, ACLs blocked), because the account setting overrides the bucket's. Deployed and checked in one lab: pages 200, `config.json` served, 404 page works, a second plan shows no changes.
+- README added with lab setup, the shared vs personal files, and the Learner Lab restrictions. Task 27 still owns the full docs.
 
 ## Open questions
 

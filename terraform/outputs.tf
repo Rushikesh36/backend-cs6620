@@ -11,6 +11,16 @@ output "environment" {
   value       = var.environment
 }
 
+output "frontend_bucket" {
+  description = "Bucket that hosts the dashboard. Pass it to scripts/deploy.sh in the frontend repo."
+  value       = data.aws_s3_bucket.frontend.id
+}
+
+output "website_url" {
+  description = "Dashboard address. allowed_origin must equal this."
+  value       = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
+}
+
 output "table_names" {
   description = "DynamoDB table names."
   value = {
