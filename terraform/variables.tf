@@ -38,7 +38,7 @@ variable "lab_role_arn" {
 }
 
 variable "frontend_bucket_name" {
-  description = "Name of the S3 bucket that hosts the static frontend. Created by scripts/create-buckets.sh, configured by frontend.tf; must be unique across all of AWS."
+  description = "Name of the S3 bucket that hosts the static frontend (already built by the frontend team)."
   type        = string
 
   validation {

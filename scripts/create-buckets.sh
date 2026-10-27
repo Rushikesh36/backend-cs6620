@@ -5,10 +5,12 @@
 #
 # Why not Terraform: Learner Lab's service control policy denies s3:GetBucketObjectLockConfiguration,
 # and the aws_s3_bucket resource reads it after every create and refresh (provider 5.x and 6.x), so
-# Terraform cannot manage the bucket itself. Everything else on the bucket (website settings,
-# public access, policy, objects) is still Terraform; it refers to the bucket by name.
+# Terraform cannot manage the bucket itself. Everything else on the bucket (CORS, lifecycle rules,
+# policies, notifications) is still Terraform; it looks the bucket up by name with
+# `data "aws_s3_bucket"`.
 #
-# Every `*_bucket_name` in the tfvars file is created. Buckets that already exist are left alone.
+# Every `*_bucket_name` in the tfvars file is created, except `frontend_bucket_name`: the dashboard's
+# bucket is set up by hand (see the frontend repo). Buckets that already exist are left alone.
 # Needs the AWS CLI, logged in to the lab (copy the credentials from AWS Details first).
 set -euo pipefail
 
@@ -28,8 +30,12 @@ tfvar() {
 
 REGION="$(tfvar region)"
 REGION="${REGION:-us-east-1}"
-BUCKETS="$(sed -nE 's/^[[:space:]]*[a-z_]+_bucket_name[[:space:]]*=[[:space:]]*"([^"]*)".*/\1/p' "$TFVARS")"
-[ -n "$BUCKETS" ] || fail "No *_bucket_name values found in $TFVARS"
+BUCKETS="$(grep -vE '^[[:space:]]*frontend_bucket_name[[:space:]]*=' "$TFVARS" |
+  sed -nE 's/^[[:space:]]*[a-z_]+_bucket_name[[:space:]]*=[[:space:]]*"([^"]*)".*/\1/p')"
+if [ -z "$BUCKETS" ]; then
+  printf 'Nothing to create: no *_bucket_name values (other than frontend_bucket_name) in %s\n' "$TFVARS"
+  exit 0
+fi
 
 aws sts get-caller-identity >/dev/null 2>&1 || fail "The AWS CLI is not logged in. Copy fresh credentials from Learner Lab."
 
