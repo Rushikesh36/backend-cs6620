@@ -1,0 +1,39 @@
+# Secrets and credentials: never commit these
+.env
+.env.*
+*.pem
+*.key
+credentials
+*.secret
+secrets/
+
+# Terraform: state can contain secrets, real tfvars hold account details
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfplan
+tfplan
+override.tf
+override.tf.json
+terraform/env/*.tfvars
+!terraform/env/*.tfvars.example
+.terraform.lock.hcl.bak
+
+# Node
+node_modules/
+coverage/
+*.tsbuildinfo
+
+# Build output
+build/
+dist/
+*.zip
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# graphify output
+graphify-out/

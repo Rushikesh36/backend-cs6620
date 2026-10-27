@@ -1,0 +1,21 @@
+# Copy to env/<yourname>.tfvars and fill in. Real tfvars files are git-ignored.
+# These are placeholders: replace every value.
+# No secrets belong in this file (the JWT secret lives in SSM, created by a script).
+
+environment    = "rushikesh"
+region         = "us-east-1"
+name_prefix    = "rushikesh-sh"
+lab_role_arn   = "arn:aws:iam::123456789012:role/LabRole"
+
+frontend_bucket_name = "my-frontend-bucket"
+allowed_origin       = "http://my-frontend-bucket.s3-website-us-east-1.amazonaws.com"
+
+vpc_id     = "vpc-0123456789abcdef0"
+subnet_ids = ["subnet-0123456789abcdef0", "subnet-0fedcba9876543210"]
+
+semgrep_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/semgrep-scanner:1.4.0-abc1234"
+zap_image_uri     = "123456789012.dkr.ecr.us-east-1.amazonaws.com/zap-scanner:2.15.0-abc1234"
+
+alert_email            = "you@example.com"
+token_lifetime_seconds = 3600
+juice_shop_url         = "http://juice-shop.internal:3000"

@@ -1,0 +1,14 @@
+# OPTIONAL: share Terraform state in S3 instead of keeping it on one laptop.
+# To use it, rename this file to backend.tf (git-ignored is NOT automatic, so check before committing).
+#
+# Warning: state files can contain secrets. Keep the bucket private and encrypted.
+# Learner Lab note: the bucket must be created by hand first, in the same account.
+#
+# terraform {
+#   backend "s3" {
+#     bucket  = "my-team-tf-state"
+#     key     = "security-hub/rushikesh.tfstate"
+#     region  = "us-east-1"
+#     encrypt = true
+#   }
+# }
