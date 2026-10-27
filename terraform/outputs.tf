@@ -1,5 +1,4 @@
-# Real outputs (api_base_url, bucket names, website URL) are added together with the
-# resources they describe, starting in Task 9.
+# More outputs (bucket names, website URL) are added together with their resources.
 
 output "resource_prefix" {
   description = "Prefix used in the names of all resources in this environment."
@@ -18,4 +17,13 @@ output "table_names" {
     jobs     = aws_dynamodb_table.jobs.name
     findings = aws_dynamodb_table.findings.name
   }
+}
+
+output "api_base_url" {
+  description = "Base URL of the API. Goes into the frontend's config.json as apiBaseUrl."
+  value       = aws_apigatewayv2_api.api.api_endpoint
+}
+
+output "api_id" {
+  value = aws_apigatewayv2_api.api.id
 }
