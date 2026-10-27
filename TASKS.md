@@ -1,8 +1,8 @@
 # TASKS: Unified Security Hub backend
 
-Progress: 5 / 27
+Progress: 6 / 27
 
-`[█████░░░░░░░░░░░░░░░░░░░░░░░] 19%`
+`[██████░░░░░░░░░░░░░░░░░░░░░░] 22%`
 
 Statuses: Not started / In progress / In review / Changes requested / Approved / Blocked
 
@@ -13,8 +13,8 @@ Statuses: Not started / In progress / In review / Changes requested / Approved /
 | 3   | Shared code: JWT helpers (HS256, `exp`/`iat`) and DynamoDB helpers (conditional status transitions, cursor encode/decode) | Approved    | 2          |
 | 4   | Terraform skeleton: providers, variables, outputs, `env/*.tfvars.example`, Lambda packaging script                        | Approved    | 1          |
 | 5   | Terraform: DynamoDB tables (users, jobs + GSI, findings)                                                                  | Approved    | 4          |
-| 6   | `scripts/add_user.ts` (hidden prompt, bcryptjs, `--update` flag) + tests                                                  | In review   | 3, 5       |
-| 7   | Login Lambda + tests (generic 401, dummy-hash timing, 400s, `exp` agrees with `expiresIn`)                                | Not started | 3, 6       |
+| 6   | `scripts/add_user.ts` (hidden prompt, bcryptjs, `--update` flag) + tests                                                  | Approved    | 3, 5       |
+| 7   | Login Lambda + tests (generic 401, dummy-hash timing, 400s, `exp` agrees with `expiresIn`)                                | In review   | 3, 6       |
 | 8   | Authorizer Lambda + tests (expired, forged, wrong role, missing token)                                                    | Not started | 3          |
 | 9   | Terraform: API Gateway HTTP API, CORS, throttling, authorizer, login route, first Lambdas wired                           | Not started | 4, 7, 8    |
 | 10  | Targets Lambda + allow-list config + tests                                                                                | Not started | 9          |
@@ -55,6 +55,9 @@ Statuses: Not started / In progress / In review / Changes requested / Approved /
 - Tables are PAY_PER_REQUEST, no point-in-time recovery (cost), so teardown is clean.
 - bcrypt cost 10 (bcryptjs), shared constant in common/passwords.ts; login must use the same cost for its dummy hash. New passwords: 12 to 72 bytes (bcrypt ignores bytes past 72). Login (Task 7) must also reject passwords over 72 bytes with 400.
 - add_user is TypeScript run with tsx (`npm run add-user`); password only via hidden prompt or --password-stdin, never argv; `--update` does not touch the `disabled` flag.
+- Login: one bcrypt compare on every path (dummy hash for unknown users); wrong user, wrong password and disabled user give the identical 401 "Incorrect username or password."; username max 64 chars, password max 72 bytes (400 beyond that). Failure reason goes to logs only.
+- JWT secret is read from SSM (WithDecryption) and cached 5 minutes per Lambda container; shared helper common/secret.ts (reused by the authorizer).
+- Tests silence the logger with LOG_LEVEL=silent; tests that check log output switch it back on.
 - Known: `npm audit` shows 6 dev-only advisories (vitest/vite/esbuild dev servers); 0 in runtime deps. Upgrading vitest hit a peer-dependency conflict; revisit later.
 
 ## Open questions
