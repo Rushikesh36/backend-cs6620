@@ -14,7 +14,10 @@ import {
 } from "../common/validation.js";
 import { makeEvent } from "./helpers.js";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
 
 describe("error helpers", () => {
   it("carry the right status codes", () => {
@@ -41,6 +44,7 @@ describe("http responses", () => {
   });
 
   it("hides the details of unexpected errors behind a generic 500", () => {
+    vi.stubEnv("LOG_LEVEL", "info");
     const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const res = toErrorResponse(new Error("db password is hunter2"));
     expect(res.statusCode).toBe(500);
@@ -155,6 +159,7 @@ describe("logger", () => {
   });
 
   it("writes one JSON line per log call", () => {
+    vi.stubEnv("LOG_LEVEL", "info");
     const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     logger.info("hello", { password: "p", jobId: "j1" });
     const line = String(write.mock.calls[0]?.[0]);
