@@ -1,8 +1,8 @@
 # TASKS: Unified Security Hub backend
 
-Progress: 5 / 27
+Progress: 8 / 27
 
-`[█████░░░░░░░░░░░░░░░░░░░░░░░] 19%`
+`[████████░░░░░░░░░░░░░░░░░░░░] 30%`
 
 Statuses: Not started / In progress / In review / Changes requested / Approved / Blocked
 
@@ -13,10 +13,10 @@ Statuses: Not started / In progress / In review / Changes requested / Approved /
 | 3   | Shared code: JWT helpers (HS256, `exp`/`iat`) and DynamoDB helpers (conditional status transitions, cursor encode/decode) | Approved    | 2          |
 | 4   | Terraform skeleton: providers, variables, outputs, `env/*.tfvars.example`, Lambda packaging script                        | Approved    | 1          |
 | 5   | Terraform: DynamoDB tables (users, jobs + GSI, findings)                                                                  | Approved    | 4          |
-| 6   | `scripts/add_user.ts` (hidden prompt, bcryptjs, `--update` flag) + tests                                                  | In review   | 3, 5       |
-| 7   | Login Lambda + tests (generic 401, dummy-hash timing, 400s, `exp` agrees with `expiresIn`)                                | Not started | 3, 6       |
-| 8   | Authorizer Lambda + tests (expired, forged, wrong role, missing token)                                                    | Not started | 3          |
-| 9   | Terraform: API Gateway HTTP API, CORS, throttling, authorizer, login route, first Lambdas wired                           | Not started | 4, 7, 8    |
+| 6   | `scripts/add_user.ts` (hidden prompt, bcryptjs, `--update` flag) + tests                                                  | Approved    | 3, 5       |
+| 7   | Login Lambda + tests (generic 401, dummy-hash timing, 400s, `exp` agrees with `expiresIn`)                                | Approved    | 3, 6       |
+| 8   | Authorizer Lambda + tests (expired, forged, wrong role, missing token)                                                    | Approved    | 3          |
+| 9   | Terraform: API Gateway HTTP API, CORS, throttling, authorizer, login route, first Lambdas wired                           | In review   | 4, 7, 8    |
 | 10  | Targets Lambda + allow-list config + tests                                                                                | Not started | 9          |
 | 11  | Terraform: S3 (uploads + reports buckets, lifecycle, CORS), SQS + DLQ                                                     | Not started | 4          |
 | 12  | create-scan Lambda (pre-signed PUT, 900 s) + tests                                                                        | Not started | 9, 11      |
@@ -55,12 +55,21 @@ Statuses: Not started / In progress / In review / Changes requested / Approved /
 - Tables are PAY_PER_REQUEST, no point-in-time recovery (cost), so teardown is clean.
 - bcrypt cost 10 (bcryptjs), shared constant in common/passwords.ts; login must use the same cost for its dummy hash. New passwords: 12 to 72 bytes (bcrypt ignores bytes past 72). Login (Task 7) must also reject passwords over 72 bytes with 400.
 - add_user is TypeScript run with tsx (`npm run add-user`); password only via hidden prompt or --password-stdin, never argv; `--update` does not touch the `disabled` flag.
+- Login: one bcrypt compare on every path (dummy hash for unknown users); wrong user, wrong password and disabled user give the identical 401 "Incorrect username or password."; username max 64 chars, password max 72 bytes (400 beyond that). Failure reason goes to logs only.
+- JWT secret is read from SSM (WithDecryption) and cached 5 minutes per Lambda container; shared helper common/secret.ts (reused by the authorizer).
+- Tests silence the logger with LOG_LEVEL=silent; tests that check log output switch it back on.
+- Authorizer: HTTP API Lambda authorizer, payload 2.0, simple response. Bad token = deny (401); failure reading the secret = thrown error (5xx, retryable, no logout). Result cache (60 s) is set in Terraform in Task 9. Handlers read the caller with common/auth.ts (getCaller, requireRole).
+- Terraform structure: modules/lambda (zip + log group + function) and modules/route (integration + route + invoke permission). Each endpoint adds one lambda module and one route module in routes.tf, so teammates rarely touch the same lines.
+- API: $default stage (URL has no stage name), CORS = one origin, GET/POST/OPTIONS, Authorization + Content-Type, no credentials, max-age 600. Throttle 50/s burst 100 overall, 2/s burst 5 on POST /login (limits are per route, not per user). No access logs (API Gateway log delivery may be blocked in Learner Lab).
+- Login Lambda gets 512 MB (bcrypt is CPU heavy); authorizer 256 MB.
 - Known: `npm audit` shows 6 dev-only advisories (vitest/vite/esbuild dev servers); 0 in runtime deps. Upgrading vitest hit a peer-dependency conflict; revisit later.
 - Learner Lab's service control policy denies `s3:GetBucketObjectLockConfiguration`, which `aws_s3_bucket` reads on every create and refresh (provider 5.100 and 6.70 both fail). Buckets are created by `scripts/create-buckets.sh` (every `*_bucket_name` in the tfvars except `frontend_bucket_name`) and looked up in Terraform with `data "aws_s3_bucket"`; CORS, lifecycle, policies and objects stay Terraform resources. Tested in one lab (script, then website settings, policy, public access block and an object through Terraform; a second plan showed no changes). Applies to Task 11's buckets.
 - Team decision (Geethanjali): the dashboard is hosted by hand in its own S3 bucket, outside this repo's Terraform, so Task 25 is not done here. Its row is left for Rushikesh to update or remove. `frontend_bucket_name` and `allowed_origin` stay, because CORS on the API and upload bucket needs the dashboard's address.
 - README added with lab setup, the shared vs personal files, and the Learner Lab restrictions. Task 27 still owns the full docs.
 
 ## Open questions
+
+0. **Needs your decision (Task 9):** an API Gateway HTTP API answers an authorizer denial (and a missing Authorization header) with its own body `{"message":"Unauthorized"}`, not `{"error":"..."}`. HTTP APIs cannot change this. The status is still 401. Does the frontend only look at the status code for 401, or also at the body? If it needs `{error}`, the alternative is to check the token inside every Lambda instead of using a gateway authorizer.
 
 1. LabRole ARN, VPC ID and subnet IDs for each of the three accounts? (needed by Task 4)
 2. Where does Juice Shop run and what is its URL? (needed by Task 22)

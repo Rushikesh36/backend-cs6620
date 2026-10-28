@@ -21,6 +21,7 @@ export function redact(value: unknown, depth = 0): unknown {
 type Level = "info" | "warn" | "error";
 
 function write(level: Level, message: string, fields: Record<string, unknown> = {}): void {
+  if (process.env.LOG_LEVEL === "silent") return; // used by unit tests to keep output readable
   const line = JSON.stringify({
     level,
     message,

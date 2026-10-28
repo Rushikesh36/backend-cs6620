@@ -144,3 +144,27 @@ variable "log_retention_days" {
     error_message = "log_retention_days must be one of 1, 3, 5, 7, 14, 30."
   }
 }
+
+variable "throttle_rate_limit" {
+  description = "Steady requests per second allowed on the whole API."
+  type        = number
+  default     = 50
+}
+
+variable "throttle_burst_limit" {
+  description = "Short burst allowed on the whole API."
+  type        = number
+  default     = 100
+}
+
+variable "login_rate_limit" {
+  description = "Steady requests per second allowed on POST /login. Tight, to slow down password guessing."
+  type        = number
+  default     = 2
+}
+
+variable "login_burst_limit" {
+  description = "Short burst allowed on POST /login."
+  type        = number
+  default     = 5
+}
