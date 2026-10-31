@@ -23,7 +23,7 @@ Statuses: Not started / In progress / In review / Changes requested / Approved /
 | 13  | start-scan Lambda (zip size and magic-byte check, 409, queueing) + tests                                                  | Not started | 12         |
 | 14  | get-scan Lambda + tests                                                                                                   | Not started | 9          |
 | 15  | list-project-scans Lambda (cursor, limit, empty list) + tests                                                             | Not started | 14         |
-| 16  | Findings model + fingerprint + diff engine (pure code) + docs/fingerprints.md, heavy tests                                | Not started | 3          |
+| 16  | Findings model + fingerprint + diff engine (pure code) + docs/fingerprints.md, heavy tests                                | In review   | 3          |
 | 17  | Report parsers (Semgrep and ZAP to common shape, severity mapping docs) + sample reports + tests                          | Not started | 16         |
 | 18  | list-findings Lambda + tests                                                                                              | Not started | 16, 9      |
 | 19  | Processor Lambda (read report, diff, store, final-state rules, FAILED messages) + tests                                   | Not started | 13, 17, 18 |
@@ -66,6 +66,7 @@ Statuses: Not started / In progress / In review / Changes requested / Approved /
 - Learner Lab's service control policy denies `s3:GetBucketObjectLockConfiguration`, which `aws_s3_bucket` reads on every create and refresh (provider 5.100 and 6.70 both fail). Buckets are created by `scripts/create-buckets.sh` (every `*_bucket_name` in the tfvars except `frontend_bucket_name`) and looked up in Terraform with `data "aws_s3_bucket"`; CORS, lifecycle, policies and objects stay Terraform resources. Tested in one lab (script, then website settings, policy, public access block and an object through Terraform; a second plan showed no changes). Applies to Task 11's buckets.
 - Team decision (Geethanjali): the dashboard is hosted by hand in its own S3 bucket, outside this repo's Terraform, so Task 25 is not done here. Its row is left for Rushikesh to update or remove. `frontend_bucket_name` and `allowed_origin` stay, because CORS on the API and upload bucket needs the dashboard's address.
 - README added with lab setup, the shared vs personal files, and the Learner Lab restrictions. Task 27 still owns the full docs.
+- Task 16 (Geethanjali): pure code in `common/findings/` (`fingerprint.ts`, `diff.ts`), reasoning in `docs/fingerprints.md`. Two changes from the handoff proposal: the parts are hashed as a JSON array instead of a `|` join (scanner text can contain `|`), and SAST code drops all whitespace instead of collapsing it (a formatter turning `f(a,b)` into `f(a, b)` must not create a new finding). DAST ignores the host so each lab's Juice Shop address gives the same fingerprint. A fingerprint reported twice in one scan counts once. Task 19 must check the job is not final before diffing, because a second diff of the same job gives a different summary.
 
 ## Open questions
 
