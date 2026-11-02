@@ -17,7 +17,7 @@ Statuses: Not started / In progress / In review / Changes requested / Approved /
 | 7   | Login Lambda + tests (generic 401, dummy-hash timing, 400s, `exp` agrees with `expiresIn`)                                | Approved    | 3, 6       |
 | 8   | Authorizer Lambda + tests (expired, forged, wrong role, missing token)                                                    | Approved    | 3          |
 | 9   | Terraform: API Gateway HTTP API, CORS, throttling, authorizer, login route, first Lambdas wired                           | In review   | 4, 7, 8    |
-| 10  | Targets Lambda + allow-list config + tests                                                                                | Not started | 9          |
+| 10  | Targets Lambda + allow-list config + tests                                                                                | In review   | 9          |
 | 11  | Terraform: S3 (uploads + reports buckets, lifecycle, CORS), SQS + DLQ                                                     | In review   | 4          |
 | 12  | create-scan Lambda (pre-signed PUT, 900 s) + tests                                                                        | In review   | 9, 11      |
 | 13  | start-scan Lambda (zip size and magic-byte check, 409, queueing) + tests                                                  | Not started | 12         |
