@@ -1,0 +1,190 @@
+{
+  "version": "1.183.0",
+  "results": [
+    {
+      "check_id": "python.lang.security.insecure-hash-algorithms-md5.insecure-hash-algorithm-md5",
+      "path": "app/config.py",
+      "start": {
+        "line": 4,
+        "col": 12,
+        "offset": 50
+      },
+      "end": {
+        "line": 4,
+        "col": 36,
+        "offset": 74
+      },
+      "extra": {
+        "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead.",
+        "metadata": {
+          "cwe": ["CWE-327: Use of a Broken or Risky Cryptographic Algorithm"],
+          "owasp": [
+            "A03:2017 - Sensitive Data Exposure",
+            "A02:2021 - Cryptographic Failures",
+            "A04:2025 - Cryptographic Failures"
+          ],
+          "category": "security",
+          "confidence": "MEDIUM"
+        },
+        "severity": "WARNING",
+        "fingerprint": "requires login",
+        "lines": "requires login",
+        "validation_state": "NO_VALIDATOR",
+        "engine_kind": "OSS"
+      }
+    },
+    {
+      "check_id": "python.django.security.injection.sql.sql-injection-using-db-cursor-execute.sql-injection-db-cursor-execute",
+      "path": "app/views.py",
+      "start": {
+        "line": 10,
+        "col": 5,
+        "offset": 131
+      },
+      "end": {
+        "line": 13,
+        "col": 68,
+        "offset": 295
+      },
+      "extra": {
+        "message": "User-controlled data from a request is passed to 'execute()'. This could lead to a SQL injection and therefore protected information could be leaked. Instead, use django's QuerySets, which are built with query parameterization and therefore not vulnerable to sql injection. For example, you could use `Entry.objects.filter(date=2006)`.",
+        "metadata": {
+          "cwe": [
+            "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+          ],
+          "owasp": ["A01:2017 - Injection", "A03:2021 - Injection", "A05:2025 - Injection"],
+          "category": "security",
+          "confidence": "MEDIUM"
+        },
+        "severity": "WARNING",
+        "fingerprint": "requires login",
+        "lines": "requires login",
+        "validation_state": "NO_VALIDATOR",
+        "engine_kind": "OSS"
+      }
+    },
+    {
+      "check_id": "python.flask.security.injection.tainted-sql-string.tainted-sql-string",
+      "path": "app/views.py",
+      "start": {
+        "line": 13,
+        "col": 20,
+        "offset": 247
+      },
+      "end": {
+        "line": 13,
+        "col": 67,
+        "offset": 294
+      },
+      "extra": {
+        "message": "Detected user input used to manually construct a SQL string. This is usually bad practice because manual construction could accidentally result in a SQL injection. An attacker could use a SQL injection to steal or modify contents of the database. Instead, use a parameterized query which is available by default in most database engines. Alternatively, consider using an object-relational mapper (ORM) such as SQLAlchemy which will protect your queries.",
+        "metadata": {
+          "cwe": ["CWE-704: Incorrect Type Conversion or Cast"],
+          "owasp": ["A01:2017 - Injection", "A03:2021 - Injection", "A05:2025 - Injection"],
+          "category": "security",
+          "confidence": "MEDIUM"
+        },
+        "severity": "ERROR",
+        "fingerprint": "requires login",
+        "lines": "requires login",
+        "validation_state": "NO_VALIDATOR",
+        "engine_kind": "OSS"
+      }
+    },
+    {
+      "check_id": "python.flask.security.injection.subprocess-injection.subprocess-injection",
+      "path": "app/views.py",
+      "start": {
+        "line": 20,
+        "col": 12,
+        "offset": 411
+      },
+      "end": {
+        "line": 20,
+        "col": 68,
+        "offset": 467
+      },
+      "extra": {
+        "message": "Detected user input entering a `subprocess` call unsafely. This could result in a command injection vulnerability. An attacker could use this vulnerability to execute arbitrary commands on the host, which allows them to download malware, scan sensitive data, or run any command they wish on the server. Do not let users choose the command to run. In general, prefer to use Python API versions of system commands. If you must use subprocess, use a dictionary to allowlist a set of commands.",
+        "metadata": {
+          "cwe": [
+            "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+          ],
+          "owasp": ["A01:2017 - Injection", "A03:2021 - Injection", "A05:2025 - Injection"],
+          "category": "security",
+          "confidence": "HIGH"
+        },
+        "severity": "ERROR",
+        "fingerprint": "requires login",
+        "lines": "requires login",
+        "validation_state": "NO_VALIDATOR",
+        "engine_kind": "OSS"
+      }
+    },
+    {
+      "check_id": "python.lang.security.dangerous-subprocess-use.dangerous-subprocess-use",
+      "path": "app/views.py",
+      "start": {
+        "line": 20,
+        "col": 36,
+        "offset": 435
+      },
+      "end": {
+        "line": 20,
+        "col": 55,
+        "offset": 454
+      },
+      "extra": {
+        "message": "Detected subprocess function 'check_output' with user controlled data. A malicious actor could leverage this to perform command injection. You may consider using 'shlex.escape()'.",
+        "metadata": {
+          "cwe": [
+            "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+          ],
+          "owasp": ["A01:2017 - Injection", "A03:2021 - Injection", "A05:2025 - Injection"],
+          "category": "security",
+          "confidence": "MEDIUM"
+        },
+        "severity": "ERROR",
+        "fingerprint": "requires login",
+        "lines": "requires login",
+        "validation_state": "NO_VALIDATOR",
+        "engine_kind": "OSS"
+      }
+    },
+    {
+      "check_id": "python.lang.security.audit.subprocess-shell-true.subprocess-shell-true",
+      "path": "app/views.py",
+      "start": {
+        "line": 20,
+        "col": 63,
+        "offset": 462
+      },
+      "end": {
+        "line": 20,
+        "col": 67,
+        "offset": 466
+      },
+      "extra": {
+        "message": "Found 'subprocess' function 'check_output' with 'shell=True'. This is dangerous because this call will spawn the command using a shell process. Doing so propagates current shell settings and variables, which makes it much easier for a malicious actor to execute commands. Use 'shell=False' instead.",
+        "fix": "False",
+        "metadata": {
+          "cwe": [
+            "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+          ],
+          "owasp": ["A01:2017 - Injection", "A03:2021 - Injection", "A05:2025 - Injection"],
+          "category": "security",
+          "confidence": "MEDIUM"
+        },
+        "severity": "ERROR",
+        "fingerprint": "requires login",
+        "lines": "requires login",
+        "validation_state": "NO_VALIDATOR",
+        "engine_kind": "OSS"
+      }
+    }
+  ],
+  "errors": [],
+  "paths": {
+    "scanned": ["app/config.py", "app/views.py"]
+  }
+}
