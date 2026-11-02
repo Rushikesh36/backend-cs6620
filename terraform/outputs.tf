@@ -27,3 +27,27 @@ output "api_base_url" {
 output "api_id" {
   value = aws_apigatewayv2_api.api.id
 }
+
+output "uploads_bucket" {
+  description = "Bucket for SAST zip uploads. Lambdas read it as UPLOADS_BUCKET."
+  value       = aws_s3_bucket.uploads.bucket
+}
+
+output "reports_bucket" {
+  description = "Bucket for scanner reports. Lambdas read it as REPORTS_BUCKET."
+  value       = aws_s3_bucket.reports.bucket
+}
+
+output "scan_queue_url" {
+  description = "SQS queue for scans waiting to start. Lambdas read it as QUEUE_URL."
+  value       = aws_sqs_queue.scan.url
+}
+
+output "scan_queue_arn" {
+  value = aws_sqs_queue.scan.arn
+}
+
+output "scan_dlq_url" {
+  description = "Dead-letter queue for scan messages that failed 3 times."
+  value       = aws_sqs_queue.scan_dlq.url
+}
