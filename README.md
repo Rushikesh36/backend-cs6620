@@ -20,17 +20,20 @@ Progress and decisions are tracked in [TASKS.md](TASKS.md). Design notes are in 
 
 ## What is built so far
 
-| Piece                                                                     | Where                                                         |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| DynamoDB tables: users, jobs (3 indexes), findings                        | `terraform/dynamodb.tf`                                       |
-| API Gateway HTTP API: CORS, throttling, JWT authorizer, `POST /login`     | `terraform/api.tf`, `terraform/routes.tf`                     |
-| Login and authorizer Lambdas                                              | `lambdas/login`, `lambdas/authorizer`, `terraform/lambdas.tf` |
-| Reusable Terraform for a Lambda and for a route                           | `terraform/modules/lambda`, `terraform/modules/route`         |
-| Shared Lambda code: responses, errors, validation, logging, JWT, secrets  | `common/`                                                     |
-| Finding fingerprints and the scan diff (new, still open, fixed)           | `common/findings/fingerprint.ts`, `diff.ts`                   |
-| Semgrep and ZAP report parsers                                            | `common/findings/semgrep.ts`, `zap.ts`                        |
-| `add-user` script to create login users                                   | `scripts/add_user.ts`                                         |
-| Not yet: scan endpoints, S3, SQS, Fargate scanners, processor, SNS alerts | see [TASKS.md](TASKS.md)                                      |
+| Piece                                                                                                                                                        | Where                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| DynamoDB tables: users, jobs (3 indexes), findings                                                                                                           | `terraform/dynamodb.tf`                                    |
+| API Gateway HTTP API: CORS, throttling, JWT authorizer                                                                                                       | `terraform/api.tf`                                         |
+| Routes `POST /login`, `GET /targets`, `POST /scans`                                                                                                          | `terraform/routes.tf`                                      |
+| Lambdas: login, authorizer, targets (DAST allow-list), create-scan (job + pre-signed upload link)                                                            | `lambdas/`, `terraform/lambdas.tf`, `terraform/targets.tf` |
+| S3 buckets: uploads (`uploads/<jobId>.zip`, kept 1 day, browser PUT via CORS) and reports (`reports/<jobId>.json`, kept 14 days); both private and encrypted | `terraform/storage.tf`                                     |
+| SQS scan queue with a dead-letter queue (3 tries)                                                                                                            | `terraform/queue.tf`                                       |
+| Reusable Terraform for a Lambda and for a route                                                                                                              | `terraform/modules/lambda`, `terraform/modules/route`      |
+| Shared Lambda code: responses, errors, validation, logging, JWT, secrets                                                                                     | `common/`                                                  |
+| Finding fingerprints and the scan diff (new, still open, fixed)                                                                                              | `common/findings/fingerprint.ts`, `diff.ts`                |
+| Semgrep and ZAP report parsers                                                                                                                               | `common/findings/semgrep.ts`, `zap.ts`                     |
+| `add-user` script to create login users                                                                                                                      | `scripts/add_user.ts`                                      |
+| Not yet: start scan, scan status and history, findings endpoint, launcher, Fargate scanners, processor, reaper, SNS alerts                                   | see [TASKS.md](TASKS.md)                                   |
 
 ## Repo layout
 
@@ -104,7 +107,7 @@ aws ec2 describe-subnets --filters Name=default-for-az,Values=true --query "Subn
 
 - `environment` and `name_prefix`: your name, for example `shreya` and `shreya-sh`. The prefix starts every resource name.
 - `frontend_bucket_name`: the S3 bucket the dashboard is hosted in.
-- `allowed_origin`: the dashboard's address, `http://<frontend_bucket_name>.s3-website-us-east-1.amazonaws.com`. The API allows browser requests from this address only (CORS). To use the dashboard on your laptop instead, set it to `http://localhost:3000`.
+- `allowed_origin`: the dashboard's address, `http://<frontend_bucket_name>.s3-website-us-east-1.amazonaws.com`. The API and the uploads bucket allow browser requests from this address only (CORS). To use the dashboard on your laptop instead, set it to `http://localhost:3000`.
 - Scanner images, `alert_email` and `juice_shop_url` can stay as placeholders until their tasks are built.
 
 **2. Create the JWT signing secret** (once per lab). Login signs its tokens with a secret kept in SSM Parameter Store, never in Terraform, so it stays out of the state file. The name must match `jwt_secret_ssm_name` (default `/security-hub/jwt-secret`) and the value must be at least 32 characters:
@@ -131,7 +134,11 @@ terraform -chdir=terraform init
 terraform -chdir=terraform apply -var-file=env/<yourname>.tfvars
 ```
 
-Check the list and type `yes`. The output `api_base_url` is the API's address; it goes into the dashboard's `config.json` as `apiBaseUrl`.
+Check the list and type `yes`. Useful outputs (`terraform -chdir=terraform output`):
+
+- `api_base_url`: the API's address. It goes into the dashboard's `config.json` as `apiBaseUrl`.
+- `uploads_bucket`, `reports_bucket`, `scan_queue_url`: the names the Lambdas get as `UPLOADS_BUCKET`, `REPORTS_BUCKET` and `QUEUE_URL`.
+- `table_names`: the DynamoDB tables (the users table is needed for `add-user`).
 
 **5. Create a login user:**
 
@@ -164,7 +171,7 @@ Each of us has a separate AWS account. The code is shared; three small things ar
 These shape the code. Please keep them in mind when adding resources.
 
 - **No new IAM roles.** Every Lambda and Fargate task uses the existing `LabRole` (`lab_role_arn`).
-- **S3 buckets.** Terraform's `aws_s3_bucket` resource fails in Learner Lab with `AccessDenied ... explicit deny in a service control policy`, because it reads `s3:GetBucketObjectLockConfiguration`, which AWS Academy blocks. Plan for this before adding buckets.
+- **S3 buckets (check before deploying).** In an earlier Learner Lab test (October 2026), Terraform's `aws_s3_bucket` resource failed with `AccessDenied ... explicit deny in a service control policy`, because it reads `s3:GetBucketObjectLockConfiguration` after creating a bucket. `terraform/storage.tf` uses this resource for the uploads and reports buckets. Run `apply` in one lab early; if you see this error, tell the owner of Task 11 before the others deploy.
 - **Region** is always `us-east-1`.
 
 ## Development commands
@@ -182,7 +189,7 @@ npm run add-user -- --username <name> --role user --table <users table>
 terraform -chdir=terraform destroy -var-file=env/<yourname>.tfvars
 ```
 
-This removes what Terraform built. The JWT secret was made outside Terraform; delete it by hand if you need to:
+This removes what Terraform built, including the uploads and reports buckets and everything in them (`force_destroy`). The JWT secret was made outside Terraform; delete it by hand if you need to:
 
 ```bash
 aws ssm delete-parameter --name /security-hub/jwt-secret
