@@ -1,0 +1,633 @@
+{
+  "@programName": "ZAP",
+  "@version": "2.17.0",
+  "@generated": "Sat, 31 Oct 2026 04:08:57",
+  "created": "2026-10-31T04:08:57.054662Z",
+  "site": [
+    {
+      "@name": "http://127.0.0.1:8000",
+      "@host": "127.0.0.1",
+      "@port": "8000",
+      "@ssl": "false",
+      "alerts": [
+        {
+          "pluginid": "40026",
+          "alertRef": "40026",
+          "alert": "Cross Site Scripting (DOM Based)",
+          "name": "Cross Site Scripting (DOM Based)",
+          "riskcode": "3",
+          "confidence": "3",
+          "riskdesc": "High (High)",
+          "desc": "<p>Cross-site Scripting (XSS) is an attack technique that involves echoing attacker-supplied code into a user's browser instance. A browser instance can be a standard web browser client, or a browser object embedded in a software product such as the browser within WinAmp, an RSS reader, or an email client. The code itself is usually written in HTML/JavaScript, but may also extend to VBScript, ActiveX, Java, Flash, or any other browser-supported technology.</p><p>When an attacker gets a user's browser to execute his/her code, the code will run within the security context (or zone) of the hosting web site. With this level of privilege, the code has the ability to read, modify and transmit any sensitive data accessible by the browser. A Cross-site Scripted user could have his/her account hijacked (cookie theft), their browser redirected to another location, or possibly shown fraudulent content delivered by the web site they are visiting. Cross-site Scripting attacks essentially compromise the trust relationship between a user and the web site. Applications utilizing browser object instances which load content from the file system may execute code under the local machine zone allowing for system compromise.</p><p></p><p>There are three types of Cross-site Scripting attacks: non-persistent, persistent and DOM-based.</p><p>Non-persistent attacks and DOM-based attacks require a user to either visit a specially crafted link laced with malicious code, or visit a malicious web page containing a web form, which when posted to the vulnerable site, will mount the attack. Using a malicious form will oftentimes take place when the vulnerable resource only accepts HTTP POST requests. In such a case, the form can be submitted automatically, without the victim's knowledge (e.g. by using JavaScript). Upon clicking on the malicious link or submitting the malicious form, the XSS payload will get echoed back and will get interpreted by the user's browser and execute. Another technique to send almost arbitrary requests (GET and POST) is by using an embedded client, such as Adobe Flash.</p><p>Persistent attacks occur when the malicious code is submitted to a web site where it's stored for a period of time. Examples of an attacker's favorite targets often include message board posts, web mail messages, and web chat software. The unsuspecting user is not required to interact with any additional site/link (e.g. an attacker site or a malicious link sent via email), just simply view the web page containing the code.</p>",
+          "instances": [
+            {
+              "id": "52",
+              "uri": "http://127.0.0.1:8000/greet?name=%3Cscript%3Ealert(5397)%3C/script%3E",
+              "nodeName": "http://127.0.0.1:8000/greet (name)",
+              "method": "GET",
+              "param": "name",
+              "attack": "<script>alert(5397)</script>",
+              "evidence": ""
+            }
+          ],
+          "count": "1",
+          "systemic": false,
+          "cweid": "79",
+          "wascid": "8",
+          "sourceid": "343"
+        },
+        {
+          "pluginid": "40012",
+          "alertRef": "40012",
+          "alert": "Cross Site Scripting (Reflected)",
+          "name": "Cross Site Scripting (Reflected)",
+          "riskcode": "3",
+          "confidence": "2",
+          "riskdesc": "High (Medium)",
+          "desc": "<p>(trimmed)</p>",
+          "instances": [
+            {
+              "id": "49",
+              "uri": "http://127.0.0.1:8000/greet?name=%3CscrIpt%3Ealert%281%29%3B%3C%2FscRipt%3E",
+              "nodeName": "http://127.0.0.1:8000/greet (name)",
+              "method": "GET",
+              "param": "name",
+              "attack": "<scrIpt>alert(1);</scRipt>",
+              "evidence": "<scrIpt>alert(1);</scRipt>"
+            },
+            {
+              "id": "50",
+              "uri": "http://127.0.0.1:8000/user?id=%27%22%3CscrIpt%3Ealert%281%29%3B%3C%2FscRipt%3E",
+              "nodeName": "http://127.0.0.1:8000/user (id)",
+              "method": "GET",
+              "param": "id",
+              "attack": "'\"<scrIpt>alert(1);</scRipt>",
+              "evidence": "'\"<scrIpt>alert(1);</scRipt>"
+            }
+          ],
+          "count": "2",
+          "systemic": false,
+          "cweid": "79",
+          "wascid": "8",
+          "sourceid": "172"
+        },
+        {
+          "pluginid": "40018",
+          "alertRef": "40018",
+          "alert": "SQL Injection - MySQL",
+          "name": "SQL Injection - MySQL",
+          "riskcode": "3",
+          "confidence": "2",
+          "riskdesc": "High (Medium)",
+          "desc": "<p>(trimmed)</p>",
+          "instances": [
+            {
+              "id": "51",
+              "uri": "http://127.0.0.1:8000/user?id=%27",
+              "nodeName": "http://127.0.0.1:8000/user (id)",
+              "method": "GET",
+              "param": "id",
+              "attack": "'",
+              "evidence": "You have an error in your SQL syntax"
+            }
+          ],
+          "count": "1",
+          "systemic": false,
+          "cweid": "89",
+          "wascid": "19",
+          "sourceid": "197"
+        },
+        {
+          "pluginid": "43",
+          "alertRef": "43",
+          "alert": "Source Code Disclosure - File Inclusion",
+          "name": "Source Code Disclosure - File Inclusion",
+          "riskcode": "3",
+          "confidence": "2",
+          "riskdesc": "High (Medium)",
+          "desc": "<p>(trimmed)</p>",
+          "instances": [
+            {
+              "id": "53",
+              "uri": "http://127.0.0.1:8000/greet?name=bob",
+              "nodeName": "http://127.0.0.1:8000/greet (name)",
+              "method": "GET",
+              "param": "name",
+              "attack": "greet",
+              "evidence": ""
+            },
+            {
+              "id": "54",
+              "uri": "http://127.0.0.1:8000/search?q=apple",
+              "nodeName": "http://127.0.0.1:8000/search (q)",
+              "method": "GET",
+              "param": "q",
+              "attack": "search",
+              "evidence": ""
+            }
+          ],
+          "count": "2",
+          "systemic": false,
+          "cweid": "541",
+          "wascid": "33",
+          "sourceid": "899"
+        },
+        {
+          "pluginid": "10038",
+          "alertRef": "10038-1",
+          "alert": "Content Security Policy (CSP) Header Not Set",
+          "name": "Content Security Policy (CSP) Header Not Set",
+          "riskcode": "2",
+          "confidence": "3",
+          "riskdesc": "Medium (High)",
+          "desc": "<p>(trimmed)</p>",
+          "instances": [
+            {
+              "id": "1",
+              "uri": "http://127.0.0.1:8000/",
+              "nodeName": "http://127.0.0.1:8000/",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "18",
+              "uri": "http://127.0.0.1:8000/greet?name=bob",
+              "nodeName": "http://127.0.0.1:8000/greet (name)",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "19",
+              "uri": "http://127.0.0.1:8000/search?q=apple",
+              "nodeName": "http://127.0.0.1:8000/search (q)",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "17",
+              "uri": "http://127.0.0.1:8000/user?id=1",
+              "nodeName": "http://127.0.0.1:8000/user (id)",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            }
+          ],
+          "count": "4",
+          "systemic": false,
+          "cweid": "693",
+          "wascid": "15",
+          "sourceid": "1"
+        },
+        {
+          "pluginid": "10020",
+          "alertRef": "10020-1",
+          "alert": "Missing Anti-clickjacking Header",
+          "name": "Missing Anti-clickjacking Header",
+          "riskcode": "2",
+          "confidence": "2",
+          "riskdesc": "Medium (Medium)",
+          "desc": "<p>(trimmed)</p>",
+          "instances": [
+            {
+              "id": "0",
+              "uri": "http://127.0.0.1:8000/",
+              "nodeName": "http://127.0.0.1:8000/",
+              "method": "GET",
+              "param": "x-frame-options",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "16",
+              "uri": "http://127.0.0.1:8000/greet?name=bob",
+              "nodeName": "http://127.0.0.1:8000/greet (name)",
+              "method": "GET",
+              "param": "x-frame-options",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "15",
+              "uri": "http://127.0.0.1:8000/search?q=apple",
+              "nodeName": "http://127.0.0.1:8000/search (q)",
+              "method": "GET",
+              "param": "x-frame-options",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "13",
+              "uri": "http://127.0.0.1:8000/user?id=1",
+              "nodeName": "http://127.0.0.1:8000/user (id)",
+              "method": "GET",
+              "param": "x-frame-options",
+              "attack": "",
+              "evidence": ""
+            }
+          ],
+          "count": "4",
+          "systemic": false,
+          "cweid": "1021",
+          "wascid": "15",
+          "sourceid": "1"
+        },
+        {
+          "pluginid": "90004",
+          "alertRef": "90004-2",
+          "alert": "Cross-Origin-Embedder-Policy Header Missing or Invalid",
+          "name": "Cross-Origin-Embedder-Policy Header Missing or Invalid",
+          "riskcode": "1",
+          "confidence": "2",
+          "riskdesc": "Low (Medium)",
+          "desc": "<p>(trimmed)</p>",
+          "instances": [
+            {
+              "id": "7",
+              "uri": "http://127.0.0.1:8000/",
+              "nodeName": "http://127.0.0.1:8000/",
+              "method": "GET",
+              "param": "Cross-Origin-Embedder-Policy",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "37",
+              "uri": "http://127.0.0.1:8000/greet?name=bob",
+              "nodeName": "http://127.0.0.1:8000/greet (name)",
+              "method": "GET",
+              "param": "Cross-Origin-Embedder-Policy",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "44",
+              "uri": "http://127.0.0.1:8000/search?q=apple",
+              "nodeName": "http://127.0.0.1:8000/search (q)",
+              "method": "GET",
+              "param": "Cross-Origin-Embedder-Policy",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "45",
+              "uri": "http://127.0.0.1:8000/user?id=1",
+              "nodeName": "http://127.0.0.1:8000/user (id)",
+              "method": "GET",
+              "param": "Cross-Origin-Embedder-Policy",
+              "attack": "",
+              "evidence": ""
+            }
+          ],
+          "count": "4",
+          "systemic": false,
+          "cweid": "693",
+          "wascid": "14",
+          "sourceid": "1"
+        },
+        {
+          "pluginid": "90004",
+          "alertRef": "90004-3",
+          "alert": "Cross-Origin-Opener-Policy Header Missing or Invalid",
+          "name": "Cross-Origin-Opener-Policy Header Missing or Invalid",
+          "riskcode": "1",
+          "confidence": "2",
+          "riskdesc": "Low (Medium)",
+          "desc": "<p>(trimmed)</p>",
+          "instances": [
+            {
+              "id": "8",
+              "uri": "http://127.0.0.1:8000/",
+              "nodeName": "http://127.0.0.1:8000/",
+              "method": "GET",
+              "param": "Cross-Origin-Opener-Policy",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "42",
+              "uri": "http://127.0.0.1:8000/greet?name=bob",
+              "nodeName": "http://127.0.0.1:8000/greet (name)",
+              "method": "GET",
+              "param": "Cross-Origin-Opener-Policy",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "46",
+              "uri": "http://127.0.0.1:8000/search?q=apple",
+              "nodeName": "http://127.0.0.1:8000/search (q)",
+              "method": "GET",
+              "param": "Cross-Origin-Opener-Policy",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "48",
+              "uri": "http://127.0.0.1:8000/user?id=1",
+              "nodeName": "http://127.0.0.1:8000/user (id)",
+              "method": "GET",
+              "param": "Cross-Origin-Opener-Policy",
+              "attack": "",
+              "evidence": ""
+            }
+          ],
+          "count": "4",
+          "systemic": false,
+          "cweid": "693",
+          "wascid": "14",
+          "sourceid": "1"
+        },
+        {
+          "pluginid": "90004",
+          "alertRef": "90004-1",
+          "alert": "Cross-Origin-Resource-Policy Header Missing or Invalid",
+          "name": "Cross-Origin-Resource-Policy Header Missing or Invalid",
+          "riskcode": "1",
+          "confidence": "2",
+          "riskdesc": "Low (Medium)",
+          "desc": "<p>(trimmed)</p>",
+          "instances": [
+            {
+              "id": "6",
+              "uri": "http://127.0.0.1:8000/",
+              "nodeName": "http://127.0.0.1:8000/",
+              "method": "GET",
+              "param": "Cross-Origin-Resource-Policy",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "34",
+              "uri": "http://127.0.0.1:8000/greet?name=bob",
+              "nodeName": "http://127.0.0.1:8000/greet (name)",
+              "method": "GET",
+              "param": "Cross-Origin-Resource-Policy",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "39",
+              "uri": "http://127.0.0.1:8000/search?q=apple",
+              "nodeName": "http://127.0.0.1:8000/search (q)",
+              "method": "GET",
+              "param": "Cross-Origin-Resource-Policy",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "41",
+              "uri": "http://127.0.0.1:8000/user?id=1",
+              "nodeName": "http://127.0.0.1:8000/user (id)",
+              "method": "GET",
+              "param": "Cross-Origin-Resource-Policy",
+              "attack": "",
+              "evidence": ""
+            }
+          ],
+          "count": "4",
+          "systemic": false,
+          "cweid": "693",
+          "wascid": "14",
+          "sourceid": "1"
+        },
+        {
+          "pluginid": "10063",
+          "alertRef": "10063-1",
+          "alert": "Permissions Policy Header Not Set",
+          "name": "Permissions Policy Header Not Set",
+          "riskcode": "1",
+          "confidence": "2",
+          "riskdesc": "Low (Medium)",
+          "desc": "<p>(trimmed)</p>",
+          "instances": [
+            {
+              "id": "5",
+              "uri": "http://127.0.0.1:8000/",
+              "nodeName": "http://127.0.0.1:8000/",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "33",
+              "uri": "http://127.0.0.1:8000/greet?name=bob",
+              "nodeName": "http://127.0.0.1:8000/greet (name)",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "36",
+              "uri": "http://127.0.0.1:8000/search?q=apple",
+              "nodeName": "http://127.0.0.1:8000/search (q)",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "38",
+              "uri": "http://127.0.0.1:8000/user?id=1",
+              "nodeName": "http://127.0.0.1:8000/user (id)",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            }
+          ],
+          "count": "4",
+          "systemic": false,
+          "cweid": "693",
+          "wascid": "15",
+          "sourceid": "1"
+        },
+        {
+          "pluginid": "10036",
+          "alertRef": "10036-2",
+          "alert": "Server Leaks Version Information via \"Server\" HTTP Response Header Field",
+          "name": "Server Leaks Version Information via \"Server\" HTTP Response Header Field",
+          "riskcode": "1",
+          "confidence": "3",
+          "riskdesc": "Low (High)",
+          "desc": "<p>(trimmed)</p>",
+          "instances": [
+            {
+              "id": "2",
+              "uri": "http://127.0.0.1:8000/",
+              "nodeName": "http://127.0.0.1:8000/",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": "BaseHTTP/0.6 Python/3.11.2"
+            },
+            {
+              "id": "22",
+              "uri": "http://127.0.0.1:8000/greet?name=bob",
+              "nodeName": "http://127.0.0.1:8000/greet (name)",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": "BaseHTTP/0.6 Python/3.11.2"
+            },
+            {
+              "id": "10",
+              "uri": "http://127.0.0.1:8000/robots.txt",
+              "nodeName": "http://127.0.0.1:8000/robots.txt",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": "BaseHTTP/0.6 Python/3.11.2"
+            },
+            {
+              "id": "9",
+              "uri": "http://127.0.0.1:8000/sitemap.xml",
+              "nodeName": "http://127.0.0.1:8000/sitemap.xml",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": "BaseHTTP/0.6 Python/3.11.2"
+            },
+            {
+              "id": "21",
+              "uri": "http://127.0.0.1:8000/user?id=1",
+              "nodeName": "http://127.0.0.1:8000/user (id)",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": "BaseHTTP/0.6 Python/3.11.2"
+            }
+          ],
+          "count": "5",
+          "systemic": true,
+          "cweid": "497",
+          "wascid": "13",
+          "sourceid": "1"
+        },
+        {
+          "pluginid": "10021",
+          "alertRef": "10021",
+          "alert": "X-Content-Type-Options Header Missing",
+          "name": "X-Content-Type-Options Header Missing",
+          "riskcode": "1",
+          "confidence": "2",
+          "riskdesc": "Low (Medium)",
+          "desc": "<p>(trimmed)</p>",
+          "instances": [
+            {
+              "id": "3",
+              "uri": "http://127.0.0.1:8000/",
+              "nodeName": "http://127.0.0.1:8000/",
+              "method": "GET",
+              "param": "x-content-type-options",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "26",
+              "uri": "http://127.0.0.1:8000/greet?name=bob",
+              "nodeName": "http://127.0.0.1:8000/greet (name)",
+              "method": "GET",
+              "param": "x-content-type-options",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "27",
+              "uri": "http://127.0.0.1:8000/search?q=apple",
+              "nodeName": "http://127.0.0.1:8000/search (q)",
+              "method": "GET",
+              "param": "x-content-type-options",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "25",
+              "uri": "http://127.0.0.1:8000/user?id=1",
+              "nodeName": "http://127.0.0.1:8000/user (id)",
+              "method": "GET",
+              "param": "x-content-type-options",
+              "attack": "",
+              "evidence": ""
+            }
+          ],
+          "count": "4",
+          "systemic": false,
+          "cweid": "693",
+          "wascid": "15",
+          "sourceid": "1"
+        },
+        {
+          "pluginid": "10049",
+          "alertRef": "10049-3",
+          "alert": "Storable and Cacheable Content",
+          "name": "Storable and Cacheable Content",
+          "riskcode": "0",
+          "confidence": "2",
+          "riskdesc": "Informational (Medium)",
+          "desc": "<p>(trimmed)</p>",
+          "instances": [
+            {
+              "id": "4",
+              "uri": "http://127.0.0.1:8000/",
+              "nodeName": "http://127.0.0.1:8000/",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "30",
+              "uri": "http://127.0.0.1:8000/greet?name=bob",
+              "nodeName": "http://127.0.0.1:8000/greet (name)",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "12",
+              "uri": "http://127.0.0.1:8000/robots.txt",
+              "nodeName": "http://127.0.0.1:8000/robots.txt",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "31",
+              "uri": "http://127.0.0.1:8000/search?q=apple",
+              "nodeName": "http://127.0.0.1:8000/search (q)",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            },
+            {
+              "id": "11",
+              "uri": "http://127.0.0.1:8000/sitemap.xml",
+              "nodeName": "http://127.0.0.1:8000/sitemap.xml",
+              "method": "GET",
+              "param": "",
+              "attack": "",
+              "evidence": ""
+            }
+          ],
+          "count": "5",
+          "systemic": true,
+          "cweid": "524",
+          "wascid": "13",
+          "sourceid": "1"
+        }
+      ]
+    }
+  ]
+}
