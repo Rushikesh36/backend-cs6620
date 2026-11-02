@@ -1,8 +1,8 @@
 # Unified Security Hub: backend and infrastructure
 
-Backend and AWS infrastructure for Unified Security Hub (CS6620 Cloud Computing, Northeastern University, Team 6). It holds the Lambda code, the shared helpers they use, and the Terraform that builds everything in an AWS Learner Lab. The dashboard's code lives in the separate frontend repo (`cs6620-frontend`) and is hosted by hand in its own S3 bucket, outside this repo's Terraform.
+Backend and AWS infrastructure for Unified Security Hub (CS6620 Cloud Computing, Northeastern University, Team 6). It holds the Lambda code, the shared helpers they use, and the Terraform that builds everything in an AWS Learner Lab. The dashboard's code lives in the separate frontend repo (`cs6620-frontend`) and is hosted separately.
 
-Progress and decisions are tracked in [TASKS.md](TASKS.md). The table design is in [docs/data-model.md](docs/data-model.md).
+Progress and decisions are tracked in [TASKS.md](TASKS.md). Design notes are in [docs/](docs/): the tables in [data-model.md](docs/data-model.md), finding fingerprints and the scan diff in [fingerprints.md](docs/fingerprints.md), and the scanner report parsers in [report-parsers.md](docs/report-parsers.md).
 
 ## Contents
 
@@ -20,22 +20,28 @@ Progress and decisions are tracked in [TASKS.md](TASKS.md). The table design is 
 
 ## What is built so far
 
-| Piece                                                            | Where                       |
-| ---------------------------------------------------------------- | --------------------------- |
-| DynamoDB tables: users, jobs (3 indexes), findings               | `terraform/dynamodb.tf`     |
-| Shared Lambda code: responses, errors, validation, logging, JWT  | `common/`                   |
-| `add-user` script to create login users                          | `scripts/add_user.ts`       |
-| Script that creates S3 buckets (Learner Lab workaround)          | `scripts/create-buckets.sh` |
-| Not yet: API Gateway, Lambdas, SQS, Fargate scanners, SNS alerts | see [TASKS.md](TASKS.md)    |
+| Piece                                                                     | Where                                                         |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| DynamoDB tables: users, jobs (3 indexes), findings                        | `terraform/dynamodb.tf`                                       |
+| API Gateway HTTP API: CORS, throttling, JWT authorizer, `POST /login`     | `terraform/api.tf`, `terraform/routes.tf`                     |
+| Login and authorizer Lambdas                                              | `lambdas/login`, `lambdas/authorizer`, `terraform/lambdas.tf` |
+| Reusable Terraform for a Lambda and for a route                           | `terraform/modules/lambda`, `terraform/modules/route`         |
+| Shared Lambda code: responses, errors, validation, logging, JWT, secrets  | `common/`                                                     |
+| Finding fingerprints and the scan diff (new, still open, fixed)           | `common/findings/fingerprint.ts`, `diff.ts`                   |
+| Semgrep and ZAP report parsers                                            | `common/findings/semgrep.ts`, `zap.ts`                        |
+| `add-user` script to create login users                                   | `scripts/add_user.ts`                                         |
+| Not yet: scan endpoints, S3, SQS, Fargate scanners, processor, SNS alerts | see [TASKS.md](TASKS.md)                                      |
 
 ## Repo layout
 
 ```
-common/      code shared by every Lambda (HTTP responses, JWT, DynamoDB, logging)
-docs/        design notes (data-model.md)
-scripts/     add_user.ts, create-buckets.sh, package.mjs (bundles Lambdas for Terraform)
-terraform/   all AWS resources; env/ holds each lab's settings
-tests/       Vitest unit tests
+common/      code shared by every Lambda (HTTP responses, JWT, DynamoDB, logging, secrets)
+common/findings/  fingerprints, scan diff and scanner report parsers (pure code, no AWS)
+docs/        design notes
+lambdas/     one folder per Lambda: <name>.ts (logic) and handler.ts (thin AWS wrapper)
+scripts/     add_user.ts, package.mjs (bundles Lambdas for Terraform)
+terraform/   all AWS resources; modules/ for reusable pieces, env/ for each lab's settings
+tests/       Vitest unit tests; fixtures/ holds real scanner reports and sample code
 ```
 
 ## What you need
@@ -97,19 +103,25 @@ aws ec2 describe-subnets --filters Name=default-for-az,Values=true --query "Subn
 ```
 
 - `environment` and `name_prefix`: your name, for example `shreya` and `shreya-sh`. The prefix starts every resource name.
-- `frontend_bucket_name`: the bucket your dashboard is hosted in. You set that bucket up by hand (see the frontend repo); this repo only needs its name.
-- `allowed_origin`: the dashboard's address, `http://<frontend_bucket_name>.s3-website-us-east-1.amazonaws.com`. The API and the upload bucket allow browser requests from this address only (CORS).
+- `frontend_bucket_name`: the S3 bucket the dashboard is hosted in.
+- `allowed_origin`: the dashboard's address, `http://<frontend_bucket_name>.s3-website-us-east-1.amazonaws.com`. The API allows browser requests from this address only (CORS). To use the dashboard on your laptop instead, set it to `http://localhost:3000`.
 - Scanner images, `alert_email` and `juice_shop_url` can stay as placeholders until their tasks are built.
 
-**2. Create the S3 buckets.** Terraform cannot do this in Learner Lab (see [restrictions](#learner-lab-restrictions)):
+**2. Create the JWT signing secret** (once per lab). Login signs its tokens with a secret kept in SSM Parameter Store, never in Terraform, so it stays out of the state file. The name must match `jwt_secret_ssm_name` (default `/security-hub/jwt-secret`) and the value must be at least 32 characters:
 
 ```bash
-scripts/create-buckets.sh terraform/env/<yourname>.tfvars
+aws ssm put-parameter --name /security-hub/jwt-secret --type SecureString --value "$(openssl rand -hex 32)"
 ```
 
-It creates every `*_bucket_name` in your tfvars except `frontend_bucket_name`. Until the upload and report buckets are added (Task 11), it prints "Nothing to create".
+A script for this is still to be written (see open items in [TASKS.md](TASKS.md)).
 
-**3. Build everything else:**
+**3. Bundle the Lambdas.** Terraform zips them from `build/lambdas/`, so this must run before every `plan` or `apply` after a code change:
+
+```bash
+npm ci && npm run build
+```
+
+**4. Build the AWS resources:**
 
 ```bash
 terraform -chdir=terraform init
@@ -119,24 +131,31 @@ terraform -chdir=terraform init
 terraform -chdir=terraform apply -var-file=env/<yourname>.tfvars
 ```
 
-Check the list and type `yes`.
+Check the list and type `yes`. The output `api_base_url` is the API's address; it goes into the dashboard's `config.json` as `apiBaseUrl`.
+
+**5. Create a login user:**
+
+```bash
+npm run add-user -- --username <name> --role user --table <users table>
+```
+
+The users table name is in `terraform -chdir=terraform output table_names`. It asks for the password with a hidden prompt.
 
 ## Day to day
 
 - Start the lab and refresh `~/.aws/credentials` (see above).
-- `git pull`, then run `terraform -chdir=terraform plan -var-file=env/<yourname>.tfvars` to see what a teammate's change would do in your lab, and `apply` to build it.
-- If someone adds a new `*_bucket_name` to the tfvars example, add it to your tfvars and run `scripts/create-buckets.sh` again. It skips buckets that already exist.
+- `git pull`, `npm run build`, then `terraform -chdir=terraform plan -var-file=env/<yourname>.tfvars` to see what a teammate's change would do in your lab, and `apply` to build it.
 
 ## How the three labs share one setup
 
 Each of us has a separate AWS account. The code is shared; three small things are personal.
 
-| File                                    | Shared in git | Notes                                                         |
-| --------------------------------------- | ------------- | ------------------------------------------------------------- |
-| `terraform/*.tf`, `scripts/`, `common/` | Yes           | Everyone runs the same code. Change it with a pull request.   |
-| `terraform/env/<yourname>.tfvars`       | No            | Your lab's IDs and names. Git-ignored.                        |
-| `terraform/terraform.tfstate`           | No            | Terraform's record of what it built in your lab. Git-ignored. |
-| `~/.aws/credentials`                    | No            | Your lab keys. Never in the repo.                             |
+| File                                            | Shared in git | Notes                                                         |
+| ----------------------------------------------- | ------------- | ------------------------------------------------------------- |
+| `terraform/`, `lambdas/`, `common/`, `scripts/` | Yes           | Everyone runs the same code. Change it with a pull request.   |
+| `terraform/env/<yourname>.tfvars`               | No            | Your lab's IDs and names. Git-ignored.                        |
+| `terraform/terraform.tfstate`                   | No            | Terraform's record of what it built in your lab. Git-ignored. |
+| `~/.aws/credentials`                            | No            | Your lab keys. Never in the repo.                             |
 
 **Keep your state file.** If `terraform.tfstate` is lost, Terraform forgets what it built and tries to create it again. To keep it in S3 instead of on your laptop, see `terraform/backend.s3.tf.example`.
 
@@ -145,23 +164,7 @@ Each of us has a separate AWS account. The code is shared; three small things ar
 These shape the code. Please keep them in mind when adding resources.
 
 - **No new IAM roles.** Every Lambda and Fargate task uses the existing `LabRole` (`lab_role_arn`).
-- **Terraform cannot manage S3 buckets.** AWS Academy's service control policy denies `s3:GetBucketObjectLockConfiguration`, and Terraform's `aws_s3_bucket` resource reads it after every create and refresh (checked with AWS provider 5.100 and 6.70), so the apply fails with `AccessDenied ... explicit deny in a service control policy`. No setting in the lab can change this. So:
-  - Create buckets with `scripts/create-buckets.sh`. Add a new bucket as a `<something>_bucket_name` variable and the script picks it up.
-  - In Terraform, look the bucket up by name and attach everything else to it (CORS, lifecycle rules, policies, notifications, objects). These do not need the blocked permission:
-
-    ```hcl
-    data "aws_s3_bucket" "uploads" {
-      bucket = var.uploads_bucket_name
-    }
-
-    resource "aws_s3_bucket_cors_configuration" "uploads" {
-      bucket = data.aws_s3_bucket.uploads.id
-      # ...
-    }
-    ```
-
-  - Do **not** add `resource "aws_s3_bucket"` blocks.
-  - This was tested in a Learner Lab: creating the bucket with the script, then website settings, a bucket policy, a public access block and an object on it through Terraform all applied, and a second `plan` showed no changes.
+- **S3 buckets.** Terraform's `aws_s3_bucket` resource fails in Learner Lab with `AccessDenied ... explicit deny in a service control policy`, because it reads `s3:GetBucketObjectLockConfiguration`, which AWS Academy blocks. Plan for this before adding buckets.
 - **Region** is always `us-east-1`.
 
 ## Development commands
@@ -173,18 +176,16 @@ npm run build           # bundle each lambdas/<name>/handler.ts for Terraform
 npm run add-user -- --username <name> --role user --table <users table>
 ```
 
-The users table name is in `terraform -chdir=terraform output table_names`. `add-user` asks for the password with a hidden prompt.
-
 ## Tearing down
 
 ```bash
 terraform -chdir=terraform destroy -var-file=env/<yourname>.tfvars
 ```
 
-This removes what Terraform built but not the buckets, because the script made them. Delete those by hand if you need to (this deletes their contents too):
+This removes what Terraform built. The JWT secret was made outside Terraform; delete it by hand if you need to:
 
 ```bash
-aws s3 rb s3://<bucket-name> --force
+aws ssm delete-parameter --name /security-hub/jwt-secret
 ```
 
 ## Troubleshooting
@@ -192,6 +193,6 @@ aws s3 rb s3://<bucket-name> --force
 - **`Unable to locate credentials` or `ExpiredToken`.** The lab keys are missing or out of date. Repeat [Connect to your Learner Lab](#connect-to-your-learner-lab).
 - **`Unable to parse config file: ~/.aws/credentials`.** The file is not in the right shape. It must start with `[default]`, followed by the three `aws_...=` lines.
 - **`Given variables file env/... does not exist`.** Terraform ran in the wrong folder. Use `terraform -chdir=terraform ...` from the repo root, or `cd terraform` first.
-- **`reading S3 Bucket ... object lock configuration ... AccessDenied`.** Something uses `resource "aws_s3_bucket"`. Switch it to the script plus a `data "aws_s3_bucket"` lookup (see [restrictions](#learner-lab-restrictions)).
-- **`reading S3 Bucket (...): couldn't find resource`.** The bucket has not been created in this lab yet. Run `scripts/create-buckets.sh`.
-- **`Bucket name ... is taken by another AWS account`.** Bucket names are global. Pick another `*_bucket_name` in your tfvars.
+- **Terraform cannot find a file in `build/lambdas/`.** The Lambdas are not bundled yet. Run `npm run build`.
+- **Login answers 500 and its logs show `ParameterNotFound` or "JWT secret is not set in SSM".** Create the secret (step 2 of the setup).
+- **`reading S3 Bucket ... object lock configuration ... AccessDenied`.** See [Learner Lab restrictions](#learner-lab-restrictions).
