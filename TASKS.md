@@ -20,7 +20,7 @@ Statuses: Not started / In progress / In review / Changes requested / Approved /
 | 10  | Targets Lambda + allow-list config + tests                                                                                | In review   | 9          |
 | 11  | Terraform: S3 (uploads + reports buckets, lifecycle, CORS), SQS + DLQ                                                     | In review   | 4          |
 | 12  | create-scan Lambda (pre-signed PUT, 900 s) + tests                                                                        | In review   | 9, 11      |
-| 13  | start-scan Lambda (zip size and magic-byte check, 409, queueing) + tests                                                  | Not started | 12         |
+| 13  | start-scan Lambda (zip size and magic-byte check, 409, queueing) + tests                                                  | In review   | 12         |
 | 14  | get-scan Lambda + tests                                                                                                   | Not started | 9          |
 | 15  | list-project-scans Lambda (cursor, limit, empty list) + tests                                                             | Not started | 14         |
 | 16  | Findings model + fingerprint + diff engine (pure code) + docs/fingerprints.md, heavy tests                                | In review   | 3          |

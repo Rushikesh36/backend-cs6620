@@ -85,3 +85,31 @@ module "route_targets" {
   invoke_arn        = module.targets.invoke_arn
   authorizer_id     = aws_apigatewayv2_authorizer.jwt.id
 }
+
+# POST /scans/{jobId}/start: check the zip, mark the job QUEUED and put it on the scan queue.
+module "start_scan" {
+  source = "./modules/lambda"
+
+  function_name      = "${local.prefix}-start-scan"
+  source_dir         = "${local.lambda_build_dir}/start-scan"
+  role_arn           = var.lab_role_arn
+  runtime            = local.lambda_runtime
+  log_retention_days = var.log_retention_days
+
+  environment = {
+    JOBS_TABLE     = aws_dynamodb_table.jobs.name
+    UPLOADS_BUCKET = aws_s3_bucket.uploads.bucket
+    QUEUE_URL      = aws_sqs_queue.scan.url
+  }
+}
+
+module "route_start_scan" {
+  source = "./modules/route"
+
+  api_id            = aws_apigatewayv2_api.api.id
+  api_execution_arn = aws_apigatewayv2_api.api.execution_arn
+  route_key         = "POST /scans/{jobId}/start"
+  function_name     = module.start_scan.function_name
+  invoke_arn        = module.start_scan.invoke_arn
+  authorizer_id     = aws_apigatewayv2_authorizer.jwt.id
+}
