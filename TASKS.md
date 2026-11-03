@@ -1,40 +1,45 @@
 # TASKS: Unified Security Hub backend
 
-Progress: 8 / 27
+Progress: 17 / 32
 
-`[████████░░░░░░░░░░░░░░░░░░░░] 30%`
+`[███████████████░░░░░░░░░░░░░] 53%`
 
 Statuses: Not started / In progress / In review / Changes requested / Approved / Blocked
 
-| #   | Task                                                                                                                      | Status      | Depends on |
-| --- | ------------------------------------------------------------------------------------------------------------------------- | ----------- | ---------- |
-| 1   | Repo setup and tooling (.gitignore first, package.json, tsc strict, ESLint, Prettier, Vitest, aws-sdk-client-mock)        | Approved    | none       |
-| 2   | Shared code `common/` (JSON responses, error helper, validation incl. projectId rule, structured logging)                 | Approved    | 1          |
-| 3   | Shared code: JWT helpers (HS256, `exp`/`iat`) and DynamoDB helpers (conditional status transitions, cursor encode/decode) | Approved    | 2          |
-| 4   | Terraform skeleton: providers, variables, outputs, `env/*.tfvars.example`, Lambda packaging script                        | Approved    | 1          |
-| 5   | Terraform: DynamoDB tables (users, jobs + GSI, findings)                                                                  | Approved    | 4          |
-| 6   | `scripts/add_user.ts` (hidden prompt, bcryptjs, `--update` flag) + tests                                                  | Approved    | 3, 5       |
-| 7   | Login Lambda + tests (generic 401, dummy-hash timing, 400s, `exp` agrees with `expiresIn`)                                | Approved    | 3, 6       |
-| 8   | Authorizer Lambda + tests (expired, forged, wrong role, missing token)                                                    | Approved    | 3          |
-| 9   | Terraform: API Gateway HTTP API, CORS, throttling, authorizer, login route, first Lambdas wired                           | In review   | 4, 7, 8    |
-| 10  | Targets Lambda + allow-list config + tests                                                                                | In review   | 9          |
-| 11  | Terraform: S3 (uploads + reports buckets, lifecycle, CORS), SQS + DLQ                                                     | In review   | 4          |
-| 12  | create-scan Lambda (pre-signed PUT, 900 s) + tests                                                                        | In review   | 9, 11      |
-| 13  | start-scan Lambda (zip size and magic-byte check, 409, queueing) + tests                                                  | In review   | 12         |
-| 14  | get-scan Lambda + tests                                                                                                   | Not started | 9          |
-| 15  | list-project-scans Lambda (cursor, limit, empty list) + tests                                                             | Not started | 14         |
-| 16  | Findings model + fingerprint + diff engine (pure code) + docs/fingerprints.md, heavy tests                                | In review   | 3          |
-| 17  | Report parsers (Semgrep and ZAP to common shape, severity mapping docs) + sample reports + tests                          | In review   | 16         |
-| 18  | list-findings Lambda + tests                                                                                              | Not started | 16, 9      |
-| 19  | Processor Lambda (read report, diff, store, final-state rules, FAILED messages) + tests                                   | Not started | 13, 17, 18 |
-| 20  | Launcher Lambda (SQS to ecs:RunTask, concurrency cap, "Could not start scanner task") + tests                             | Not started | 11, 13     |
-| 21  | Scanner images (semgrep and zap Dockerfiles + wrapper scripts, zip-bomb limits, pinned tags)                              | Not started | 17         |
-| 22  | Terraform: ECS cluster, task definitions, network/security groups, EventBridge task-state rule                            | Not started | 19, 20, 21 |
-| 23  | Reaper Lambda (stuck jobs, stops tasks) + schedule + tests                                                                | Not started | 22         |
-| 24  | Alerts (SNS email when newHigh >= 1) + tests                                                                              | Not started | 19         |
-| 25  | Frontend bucket website settings + `config.json` object from Terraform                                                    | Not started | 9          |
-| 26  | Contract tests (JSON Schemas for every response) + `scripts/smoke.sh`                                                     | Not started | 18, 15     |
-| 27  | Docs (contract, architecture, runbook), README, GitHub Actions CI (lint, test, terraform fmt/validate)                    | Not started | all        |
+| #   | Task                                                                                                                                                                                                                                                                       | Status      | Depends on     |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | -------------- |
+| 1   | Repo setup and tooling (.gitignore first, package.json, tsc strict, ESLint, Prettier, Vitest, aws-sdk-client-mock)                                                                                                                                                         | Approved    | none           |
+| 2   | Shared code `common/` (JSON responses, error helper, validation incl. projectId rule, structured logging)                                                                                                                                                                  | Approved    | 1              |
+| 3   | Shared code: JWT helpers (HS256, `exp`/`iat`) and DynamoDB helpers (conditional status transitions, cursor encode/decode)                                                                                                                                                  | Approved    | 2              |
+| 4   | Terraform skeleton: providers, variables, outputs, `env/*.tfvars.example`, Lambda packaging script                                                                                                                                                                         | Approved    | 1              |
+| 5   | Terraform: DynamoDB tables (users, jobs + GSI, findings)                                                                                                                                                                                                                   | Approved    | 4              |
+| 6   | `scripts/add_user.ts` (hidden prompt, bcryptjs, `--update` flag) + tests                                                                                                                                                                                                   | Approved    | 3, 5           |
+| 7   | Login Lambda + tests (generic 401, dummy-hash timing, 400s, `exp` agrees with `expiresIn`)                                                                                                                                                                                 | Approved    | 3, 6           |
+| 8   | Authorizer Lambda + tests (expired, forged, wrong role, missing token)                                                                                                                                                                                                     | Approved    | 3              |
+| 9   | Terraform: API Gateway HTTP API, CORS, throttling, authorizer, login route, first Lambdas wired                                                                                                                                                                            | Approved    | 4, 7, 8        |
+| 10  | Targets Lambda + allow-list config + tests                                                                                                                                                                                                                                 | Approved    | 9              |
+| 11  | Terraform: S3 (uploads + reports buckets, lifecycle, CORS), SQS + DLQ                                                                                                                                                                                                      | Approved    | 4              |
+| 12  | create-scan Lambda (pre-signed PUT, 900 s) + tests                                                                                                                                                                                                                         | Approved    | 9, 11          |
+| 13  | start-scan Lambda (zip size and magic-byte check, 409, queueing) + tests                                                                                                                                                                                                   | Approved    | 12             |
+| 14  | get-scan Lambda + tests                                                                                                                                                                                                                                                    | Not started | 9              |
+| 15  | list-project-scans Lambda (cursor, limit, empty list) + tests                                                                                                                                                                                                              | Not started | 14             |
+| 16  | Findings model + fingerprint + diff engine (pure code) + docs/fingerprints.md, heavy tests                                                                                                                                                                                 | Approved    | 3              |
+| 17  | Report parsers (Semgrep and ZAP to common shape, severity mapping docs) + sample reports + tests                                                                                                                                                                           | Approved    | 16             |
+| 18  | list-findings Lambda + tests                                                                                                                                                                                                                                               | Not started | 16, 9          |
+| 19  | Processor Lambda (read report, diff, store, final-state rules, FAILED messages) + tests                                                                                                                                                                                    | Not started | 13, 17, 18     |
+| 20  | Launcher Lambda: SQS trigger with `maximum_concurrency` (no reserved concurrency); reads project and target from the job; conditional `QUEUED → RUNNING` (duplicate delivery is discarded); `ecs:RunTask` with `startedBy = jobId`; "Could not start scanner task" + tests | Not started | 11, 13, 28     |
+| 21  | Scanner images (semgrep and zap Dockerfiles + wrapper scripts, zip-bomb limits, pinned tags)                                                                                                                                                                               | Not started | 17             |
+| 22  | Terraform: ECS cluster, task definitions (use the Task 28 subnets and security groups), EventBridge task-state rule                                                                                                                                                        | Not started | 19, 20, 21, 28 |
+| 23  | Reaper Lambda (stuck jobs, stops tasks) + schedule + tests                                                                                                                                                                                                                 | Not started | 22             |
+| 24  | Alerts (SNS email when newHigh >= 1) + tests                                                                                                                                                                                                                               | Not started | 19             |
+| 25  | Frontend bucket website settings + `config.json` object from Terraform                                                                                                                                                                                                     | Not started | 9              |
+| 26  | Contract tests (JSON Schemas for every response) + `scripts/smoke.sh`                                                                                                                                                                                                      | Not started | 18, 15         |
+| 27  | Docs (contract, architecture, runbook), README, GitHub Actions CI (lint, test, terraform fmt/validate)                                                                                                                                                                     | Not started | all            |
+| 28  | Terraform: dedicated VPC, private subnets, S3 gateway + `ecr.api`/`ecr.dkr`/`logs` interface endpoints (one AZ), scanner / test app / endpoint security groups (replaces `vpc_id` + `subnet_ids`)                                                                          | Approved    | 4              |
+| 29  | `scripts/create_jwt_secret.ts` (random secret straight to SSM, `--rotate`) + tests                                                                                                                                                                                         | Approved    | 1              |
+| 30  | list-recent-scans Lambda for `GET /scans` (`byCreated`, cursor, limit) + tests                                                                                                                                                                                             | Not started | 14, 15         |
+| 31  | DAST test app: ECS service in the VPC, image mirrored into ECR, desired count 0; replaces `juice_shop_url`                                                                                                                                                                 | Not started | 22, 28         |
+| 32  | CloudWatch alarms to an SNS topic: SQS oldest-message age, DLQ depth > 0, failed ECS tasks                                                                                                                                                                                 | Not started | 22, 24         |
 
 ## Decisions log
 
@@ -67,11 +72,20 @@ Statuses: Not started / In progress / In review / Changes requested / Approved /
 - Task 16 (Geethanjali): pure code in `common/findings/` (`fingerprint.ts`, `diff.ts`), reasoning in `docs/fingerprints.md`. Two changes from the handoff proposal: the parts are hashed as a JSON array instead of a `|` join (scanner text can contain `|`), and SAST code drops all whitespace instead of collapsing it (a formatter turning `f(a,b)` into `f(a, b)` must not create a new finding). DAST ignores the host so each lab's Juice Shop address gives the same fingerprint. A fingerprint reported twice in one scan counts once. Task 19 must check the job is not final before diffing, because a second diff of the same job gives a different summary.
 - Task 17 (Geethanjali): `common/findings/semgrep.ts`, `zap.ts` and shared `report.ts`; mapping and rules in `docs/report-parsers.md`. Built against real output: Semgrep 1.183.0 (`p/python`) on `tests/fixtures/sample-app` and ZAP 2.17.0 full scans of a local test site; trimmed reports are in `tests/fixtures/reports/`. Findings: (1) free Semgrep writes "requires login" instead of the matched code, so the parser takes the code from `extra.lines`, else an optional `readLines`, else falls back to the line number with a warning. **Task 21's wrapper must run Semgrep from inside the source folder and fill `extra.lines` from the source before uploading**, because the processor only has the report. (2) ZAP lists only a sample of pages for `systemic` alerts and the sample changes between runs, so a systemic alert becomes one `GET / (site-wide)` finding. ZAP's `desc` is HTML and is never stored; the plain `alert` title is the message. Rule ID uses `alertRef` (falls back to `pluginid`). Broken entries are skipped with a warning; an unusable report throws `ReportError`. Text is capped (rule 300, location 500, message 1,000).
 
+- Architecture: [docs/architecture.md](docs/architecture.md) is the single agreed design and wins over anything else in the repo. Aligned on 2026-11-03: dedicated VPC created by Terraform (Task 28; `vpc_id` and `subnet_ids` removed), the queue message is only `{ jobId, scanType }` (the launcher reads project and target from the job), `scripts/create_jwt_secret.ts` added (Task 29), and rows added for `GET /scans` (30), the in-VPC test app (31) and alarms (32).
+- Stopgap: `juice_shop_url` stays a required variable until Task 31 builds the in-VPC test app, then it goes away. It is the one remaining difference from the architecture.
+
+## To verify on a real Learner Lab (architecture section 13)
+
+- The S3 gateway endpoint and the `ecr.api`, `ecr.dkr`, `logs` interface endpoints can be created, and their hourly price (Task 28 is written but never applied).
+- LabRole permits `iam:PassRole` for ECS RunTask from Lambda.
+- Scanners run fully offline inside the private subnets.
+
 ## Open questions
 
 0. **Needs your decision (Task 9):** an API Gateway HTTP API answers an authorizer denial (and a missing Authorization header) with its own body `{"message":"Unauthorized"}`, not `{"error":"..."}`. HTTP APIs cannot change this. The status is still 401. Does the frontend only look at the status code for 401, or also at the body? If it needs `{error}`, the alternative is to check the token inside every Lambda instead of using a gateway authorizer.
 
-1. LabRole ARN, VPC ID and subnet IDs for each of the three accounts? (needed by Task 4)
-2. Where does Juice Shop run and what is its URL? (needed by Task 22)
+1. LabRole ARN for each of the three accounts? (needed by Task 4. The VPC is now created by Terraform, so VPC and subnet IDs are no longer needed.)
+2. Juice Shop runs as an ECS service inside the VPC (Task 31). Until then, what URL goes in `juice_shop_url`?
 3. Is ECR available and can we push images? (needed by Task 21)
 4. Who are the first users, and what roles? (needed by Task 6)

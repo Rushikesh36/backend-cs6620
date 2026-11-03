@@ -72,24 +72,14 @@ describe("startScan: success", () => {
     expect(result).toEqual({ jobId: JOB_ID, status: "QUEUED" });
     expect(inspectUpload).toHaveBeenCalledWith(`uploads/${JOB_ID}.zip`);
     expect(markQueued).toHaveBeenCalledWith(JOB_ID, "2026-11-02T10:00:00.000Z");
-    expect(sendToQueue).toHaveBeenCalledWith({
-      jobId: JOB_ID,
-      projectId: "demo-app",
-      scanType: "SAST",
-      targetId: null,
-    });
+    expect(sendToQueue).toHaveBeenCalledWith({ jobId: JOB_ID, scanType: "SAST" });
   });
 
-  it("DAST: no zip to check, queued with the targetId only", async () => {
+  it("DAST: no zip to check, queued with jobId and scanType only (no target, no URL)", async () => {
     const { deps, sendToQueue, inspectUpload } = setup(dastJob, null);
     expect(await startScan(JOB_ID, deps)).toEqual({ jobId: JOB_ID, status: "QUEUED" });
     expect(inspectUpload).not.toHaveBeenCalled();
-    expect(sendToQueue).toHaveBeenCalledWith({
-      jobId: JOB_ID,
-      projectId: "demo-app",
-      scanType: "DAST",
-      targetId: "juice-shop",
-    });
+    expect(sendToQueue).toHaveBeenCalledWith({ jobId: JOB_ID, scanType: "DAST" });
   });
 
   it("accepts a zip of exactly 50 MB", async () => {
@@ -217,12 +207,7 @@ describe("POST /scans/{jobId}/start handler", () => {
 
     const sent = sqs.commandCalls(SendMessageCommand)[0]?.args[0].input;
     expect(sent?.QueueUrl).toBe("https://sqs.example/queue");
-    expect(JSON.parse(sent?.MessageBody ?? "")).toEqual({
-      jobId: JOB_ID,
-      projectId: "demo-app",
-      scanType: "SAST",
-      targetId: null,
-    });
+    expect(JSON.parse(sent?.MessageBody ?? "")).toEqual({ jobId: JOB_ID, scanType: "SAST" });
   });
 
   it("does not download anything when the file is already too big", async () => {

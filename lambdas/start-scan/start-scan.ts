@@ -31,14 +31,13 @@ export interface UploadInfo {
 }
 
 /**
- * The message the launcher reads. It never contains a URL: the launcher looks up the real
- * target address itself from the targetId.
+ * The message the launcher reads: only these two fields (docs/architecture.md 5.2). The launcher
+ * reads the rest (project, target) from the job record, so a message can never carry a stale or
+ * forged target, and it never contains a URL.
  */
 export interface ScanMessage {
   jobId: string;
-  projectId: string;
   scanType: ScanType;
-  targetId: string | null;
 }
 
 export interface StartScanDeps {
@@ -82,12 +81,7 @@ export async function startScan(jobId: string, deps: StartScanDeps): Promise<Sta
   }
 
   try {
-    await deps.sendToQueue({
-      jobId,
-      projectId: job.projectId,
-      scanType: job.scanType,
-      targetId: job.targetId,
-    });
+    await deps.sendToQueue({ jobId, scanType: job.scanType });
   } catch (err) {
     // The job is QUEUED but nothing will ever pick it up. Fail it now, so it does not sit
     // there until the reaper finds it. The caller still gets a retryable 5xx.

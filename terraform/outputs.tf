@@ -51,3 +51,15 @@ output "scan_dlq_url" {
   description = "Dead-letter queue for scan messages that failed 3 times."
   value       = aws_sqs_queue.scan_dlq.url
 }
+
+output "network" {
+  description = "The dedicated VPC. Used by the ECS task definitions and the launcher (Tasks 20 and 22)."
+  value = {
+    vpc_id                  = aws_vpc.main.id
+    private_subnet_ids      = aws_subnet.private[*].id
+    scanner_security_group  = aws_security_group.scanner.id
+    test_app_security_group = aws_security_group.test_app.id
+    endpoint_security_group = aws_security_group.endpoints.id
+    test_app_port           = var.test_app_port
+  }
+}
