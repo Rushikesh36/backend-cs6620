@@ -57,23 +57,36 @@ variable "allowed_origin" {
   }
 }
 
-variable "vpc_id" {
-  description = "VPC where the scanner tasks run."
+variable "vpc_cidr" {
+  description = "Address range of the dedicated VPC that Terraform creates for the scanners."
   type        = string
+  default     = "10.20.0.0/16"
 
   validation {
-    condition     = can(regex("^vpc-[0-9a-f]+$", var.vpc_id))
-    error_message = "vpc_id must look like vpc-0123456789abcdef0."
+    condition     = can(regex("^[0-9.]+/([0-9]|1[0-6])$", var.vpc_cidr)) && can(cidrhost(var.vpc_cidr, 0))
+    error_message = "vpc_cidr must be a CIDR block of /16 or larger, like 10.20.0.0/16."
   }
 }
 
-variable "subnet_ids" {
-  description = "Subnets for the scanner tasks."
-  type        = list(string)
+variable "az_count" {
+  description = "How many availability zones get a private subnet."
+  type        = number
+  default     = 2
 
   validation {
-    condition     = length(var.subnet_ids) > 0 && alltrue([for s in var.subnet_ids : can(regex("^subnet-[0-9a-f]+$", s))])
-    error_message = "subnet_ids must be a non-empty list of subnet-... IDs."
+    condition     = var.az_count >= 1 && var.az_count <= 3
+    error_message = "az_count must be 1, 2 or 3."
+  }
+}
+
+variable "test_app_port" {
+  description = "Port the DAST test app listens on. The scanner security group may reach only this port."
+  type        = number
+  default     = 3000
+
+  validation {
+    condition     = var.test_app_port >= 1 && var.test_app_port <= 65535
+    error_message = "test_app_port must be between 1 and 65535."
   }
 }
 

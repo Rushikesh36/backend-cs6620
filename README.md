@@ -91,32 +91,23 @@ Run everything from the repo root.
 cp terraform/env/example.tfvars.example terraform/env/<yourname>.tfvars
 ```
 
-Fill in your lab's values. These commands print them:
+Fill in your lab's values. This command prints your LabRole ARN:
 
 ```bash
 aws iam get-role --role-name LabRole --query Role.Arn --output text
 ```
 
-```bash
-aws ec2 describe-vpcs --filters Name=isDefault,Values=true --query "Vpcs[0].VpcId" --output text
-```
-
-```bash
-aws ec2 describe-subnets --filters Name=default-for-az,Values=true --query "Subnets[].SubnetId" --output text
-```
-
 - `environment` and `name_prefix`: your name, for example `shreya` and `shreya-sh`. The prefix starts every resource name.
 - `frontend_bucket_name`: the S3 bucket the dashboard is hosted in.
 - `allowed_origin`: the dashboard's address, `http://<frontend_bucket_name>.s3-website-us-east-1.amazonaws.com`. The API and the uploads bucket allow browser requests from this address only (CORS). To use the dashboard on your laptop instead, set it to `http://localhost:3000`.
+- There is no VPC to look up: Terraform creates a dedicated one (`network.tf`). `vpc_cidr` and `az_count` have defaults and can be left out.
 - Scanner images, `alert_email` and `juice_shop_url` can stay as placeholders until their tasks are built.
 
-**2. Create the JWT signing secret** (once per lab). Login signs its tokens with a secret kept in SSM Parameter Store, never in Terraform, so it stays out of the state file. The name must match `jwt_secret_ssm_name` (default `/security-hub/jwt-secret`) and the value must be at least 32 characters:
+**2. Create the JWT signing secret** (once per lab). Login signs its tokens with a secret kept in SSM Parameter Store, never in Terraform, so it stays out of the state file. The name must match `jwt_secret_ssm_name` (default `/security-hub/jwt-secret`). The script generates a random 48-byte secret and stores it straight in SSM. It is never printed. It refuses to replace an existing secret unless you pass `--rotate` (which signs every user out):
 
 ```bash
-aws ssm put-parameter --name /security-hub/jwt-secret --type SecureString --value "$(openssl rand -hex 32)"
+npm run create-jwt-secret
 ```
-
-A script for this is still to be written (see open items in [TASKS.md](TASKS.md)).
 
 **3. Bundle the Lambdas.** Terraform zips them from `build/lambdas/`, so this must run before every `plan` or `apply` after a code change:
 
