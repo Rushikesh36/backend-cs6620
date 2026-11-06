@@ -139,3 +139,29 @@ module "route_get_scan" {
   invoke_arn        = module.get_scan.invoke_arn
   authorizer_id     = aws_apigatewayv2_authorizer.jwt.id
 }
+
+# GET /projects/{projectId}/scans: scan history of one project, newest first, paged.
+module "list_project_scans" {
+  source = "./modules/lambda"
+
+  function_name      = "${local.prefix}-list-project-scans"
+  source_dir         = "${local.lambda_build_dir}/list-project-scans"
+  role_arn           = var.lab_role_arn
+  runtime            = local.lambda_runtime
+  log_retention_days = var.log_retention_days
+
+  environment = {
+    JOBS_TABLE = aws_dynamodb_table.jobs.name
+  }
+}
+
+module "route_list_project_scans" {
+  source = "./modules/route"
+
+  api_id            = aws_apigatewayv2_api.api.id
+  api_execution_arn = aws_apigatewayv2_api.api.execution_arn
+  route_key         = "GET /projects/{projectId}/scans"
+  function_name     = module.list_project_scans.function_name
+  invoke_arn        = module.list_project_scans.invoke_arn
+  authorizer_id     = aws_apigatewayv2_authorizer.jwt.id
+}
