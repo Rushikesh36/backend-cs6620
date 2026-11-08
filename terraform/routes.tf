@@ -165,3 +165,30 @@ module "route_list_project_scans" {
   invoke_arn        = module.list_project_scans.invoke_arn
   authorizer_id     = aws_apigatewayv2_authorizer.jwt.id
 }
+
+# GET /projects/{projectId}/findings?scanType=: all findings of one project and scan type (OPEN and FIXED).
+# Read only: the results processor is the one writer of the findings table.
+module "list_findings" {
+  source = "./modules/lambda"
+
+  function_name      = "${local.prefix}-list-findings"
+  source_dir         = "${local.lambda_build_dir}/list-findings"
+  role_arn           = var.lab_role_arn
+  runtime            = local.lambda_runtime
+  log_retention_days = var.log_retention_days
+
+  environment = {
+    FINDINGS_TABLE = aws_dynamodb_table.findings.name
+  }
+}
+
+module "route_list_findings" {
+  source = "./modules/route"
+
+  api_id            = aws_apigatewayv2_api.api.id
+  api_execution_arn = aws_apigatewayv2_api.api.execution_arn
+  route_key         = "GET /projects/{projectId}/findings"
+  function_name     = module.list_findings.function_name
+  invoke_arn        = module.list_findings.invoke_arn
+  authorizer_id     = aws_apigatewayv2_authorizer.jwt.id
+}
