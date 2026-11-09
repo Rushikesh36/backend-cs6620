@@ -35,7 +35,8 @@ export function requireEnv(name: string): string {
   return value;
 }
 
-type Attr = string | number | boolean | null;
+// A flat object of numbers is allowed too, for the scan summary { new, newHigh, stillOpen, fixed }.
+type Attr = string | number | boolean | null | Readonly<Record<string, number>>;
 
 /**
  * Moves a job to `to` only if it is in an allowed earlier state, in one atomic write.
