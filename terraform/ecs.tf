@@ -30,12 +30,12 @@ locals {
   scanner_environment = {
     SAST = {
       AWS_REGION     = var.region
-      REPORTS_BUCKET = aws_s3_bucket.reports.bucket
-      UPLOADS_BUCKET = aws_s3_bucket.uploads.bucket
+      REPORTS_BUCKET = data.aws_s3_bucket.reports.bucket
+      UPLOADS_BUCKET = data.aws_s3_bucket.uploads.bucket
     }
     DAST = {
       AWS_REGION     = var.region
-      REPORTS_BUCKET = aws_s3_bucket.reports.bucket
+      REPORTS_BUCKET = data.aws_s3_bucket.reports.bucket
     }
   }
 }

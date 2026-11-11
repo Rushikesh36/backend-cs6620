@@ -33,6 +33,6 @@ module "processor" {
   environment = {
     JOBS_TABLE     = aws_dynamodb_table.jobs.name
     FINDINGS_TABLE = aws_dynamodb_table.findings.name
-    REPORTS_BUCKET = aws_s3_bucket.reports.bucket
+    REPORTS_BUCKET = data.aws_s3_bucket.reports.bucket
   }
 }

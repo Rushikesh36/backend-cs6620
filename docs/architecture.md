@@ -179,7 +179,7 @@ Errors use one JSON shape. CORS is set on API Gateway, not in Lambdas.
 - Uploads bucket (private): `uploads/{jobId}.zip`, short lifecycle.
 - Reports bucket (private): raw and normalised reports per `jobId`.
 - Frontend bucket: S3 website; Terraform writes `config.json` with `apiBaseUrl` and `environment`.
-- Bucket names include the account ID. `force_destroy = true` so teardown is clean.
+- Bucket names include the account ID. Learner Lab blocks Terraform's `aws_s3_bucket` resource, so `scripts/manage_buckets.sh` creates and deletes the uploads and reports buckets; Terraform looks them up by name and manages their settings.
 
 ---
 
