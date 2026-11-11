@@ -28,6 +28,7 @@
     "@eslint/js": "^9.15.0",
     "@types/aws-lambda": "^8.10.145",
     "@types/node": "^22.10.0",
+    "@types/yauzl": "^3.4.0",
     "aws-sdk-client-mock": "^4.1.0",
     "esbuild": "^0.24.0",
     "eslint": "^9.15.0",
@@ -40,6 +41,7 @@
     "vitest": "^2.1.0"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.3"
+    "bcryptjs": "^3.0.3",
+    "yauzl": "^3.4.0"
   }
 }

@@ -28,7 +28,7 @@ const SEVERITY = new Map<string, Severity>([
 ]);
 
 /** What free Semgrep writes in `extra.lines` (and `extra.fingerprint`) when nobody is logged in. */
-const LOGIN_PLACEHOLDER = "requires login";
+export const LOGIN_PLACEHOLDER = "requires login";
 
 export interface SemgrepOptions {
   /**

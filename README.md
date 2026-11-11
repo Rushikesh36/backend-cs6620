@@ -2,7 +2,7 @@
 
 Backend and AWS infrastructure for Unified Security Hub (CS6620 Cloud Computing, Northeastern University, Team 6). It holds the Lambda code, the shared helpers they use, and the Terraform that builds everything in an AWS Learner Lab. The dashboard's code lives in the separate frontend repo (`cs6620-frontend`) and is hosted separately.
 
-Progress and decisions are tracked in [TASKS.md](TASKS.md). Design notes are in [docs/](docs/): the tables in [data-model.md](docs/data-model.md), finding fingerprints and the scan diff in [fingerprints.md](docs/fingerprints.md), and the scanner report parsers in [report-parsers.md](docs/report-parsers.md).
+Progress and decisions are tracked in [TASKS.md](TASKS.md). Design notes are in [docs/](docs/): the tables in [data-model.md](docs/data-model.md), finding fingerprints and the scan diff in [fingerprints.md](docs/fingerprints.md), the scanner report parsers in [report-parsers.md](docs/report-parsers.md), and the scanner images in [scanners.md](docs/scanners.md).
 
 ## Contents
 
@@ -20,20 +20,22 @@ Progress and decisions are tracked in [TASKS.md](TASKS.md). Design notes are in 
 
 ## What is built so far
 
-| Piece                                                                                                                                                        | Where                                                      |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| DynamoDB tables: users, jobs (3 indexes), findings                                                                                                           | `terraform/dynamodb.tf`                                    |
-| API Gateway HTTP API: CORS, throttling, JWT authorizer                                                                                                       | `terraform/api.tf`                                         |
-| Routes `POST /login`, `GET /targets`, `POST /scans`                                                                                                          | `terraform/routes.tf`                                      |
-| Lambdas: login, authorizer, targets (DAST allow-list), create-scan (job + pre-signed upload link)                                                            | `lambdas/`, `terraform/lambdas.tf`, `terraform/targets.tf` |
-| S3 buckets: uploads (`uploads/<jobId>.zip`, kept 1 day, browser PUT via CORS) and reports (`reports/<jobId>.json`, kept 14 days); both private and encrypted | `terraform/storage.tf`                                     |
-| SQS scan queue with a dead-letter queue (3 tries)                                                                                                            | `terraform/queue.tf`                                       |
-| Reusable Terraform for a Lambda and for a route                                                                                                              | `terraform/modules/lambda`, `terraform/modules/route`      |
-| Shared Lambda code: responses, errors, validation, logging, JWT, secrets                                                                                     | `common/`                                                  |
-| Finding fingerprints and the scan diff (new, still open, fixed)                                                                                              | `common/findings/fingerprint.ts`, `diff.ts`                |
-| Semgrep and ZAP report parsers                                                                                                                               | `common/findings/semgrep.ts`, `zap.ts`                     |
-| `add-user` script to create login users                                                                                                                      | `scripts/add_user.ts`                                      |
-| Not yet: start scan, scan status and history, findings endpoint, launcher, Fargate scanners, processor, reaper, SNS alerts                                   | see [TASKS.md](TASKS.md)                                   |
+| Piece                                                                                                                                                        | Where                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| DynamoDB tables: users, jobs (3 indexes), findings                                                                                                           | `terraform/dynamodb.tf`                                                 |
+| API Gateway HTTP API: CORS, throttling, JWT authorizer                                                                                                       | `terraform/api.tf`                                                      |
+| Routes `POST /login`, `GET /targets`, `POST /scans`                                                                                                          | `terraform/routes.tf`                                                   |
+| Lambdas: login, authorizer, targets (DAST allow-list), create-scan (job + pre-signed upload link)                                                            | `lambdas/`, `terraform/lambdas.tf`, `terraform/targets.tf`              |
+| S3 buckets: uploads (`uploads/<jobId>.zip`, kept 1 day, browser PUT via CORS) and reports (`reports/<jobId>.json`, kept 14 days); both private and encrypted | `terraform/storage.tf`                                                  |
+| SQS scan queue with a dead-letter queue (3 tries)                                                                                                            | `terraform/queue.tf`                                                    |
+| Reusable Terraform for a Lambda and for a route                                                                                                              | `terraform/modules/lambda`, `terraform/modules/route`                   |
+| Shared Lambda code: responses, errors, validation, logging, JWT, secrets                                                                                     | `common/`                                                               |
+| Finding fingerprints and the scan diff (new, still open, fixed)                                                                                              | `common/findings/fingerprint.ts`, `diff.ts`                             |
+| Semgrep and ZAP report parsers                                                                                                                               | `common/findings/semgrep.ts`, `zap.ts`                                  |
+| ECS cluster, Semgrep and ZAP task definitions, EventBridge rule that sends stopped tasks to the processor                                                    | `terraform/ecs.tf`, [docs/scanners.md](docs/scanners.md#on-ecs-task-22) |
+| Scanner images: Semgrep (SAST) and ZAP (DAST), offline, with zip-bomb limits and pinned versions                                                             | `scanners/`, [docs/scanners.md](docs/scanners.md)                       |
+| `add-user` script to create login users                                                                                                                      | `scripts/add_user.ts`                                                   |
+| Not yet: launcher, reaper, SNS alerts, `GET /scans`, test app in the VPC, alarms                                                                             | see [TASKS.md](TASKS.md)                                                |
 
 ## Repo layout
 
@@ -42,7 +44,8 @@ common/      code shared by every Lambda (HTTP responses, JWT, DynamoDB, logging
 common/findings/  fingerprints, scan diff and scanner report parsers (pure code, no AWS)
 docs/        design notes
 lambdas/     one folder per Lambda: <name>.ts (logic) and handler.ts (thin AWS wrapper)
-scripts/     add_user.ts, package.mjs (bundles Lambdas for Terraform)
+scanners/    the Semgrep and ZAP images: Dockerfile and wrapper per scanner, versions.env
+scripts/     add_user.ts, package.mjs (bundles Lambdas for Terraform), build_scanner_images.sh
 terraform/   all AWS resources; modules/ for reusable pieces, env/ for each lab's settings
 tests/       Vitest unit tests; fixtures/ holds real scanner reports and sample code
 ```
@@ -130,6 +133,7 @@ Check the list and type `yes`. Useful outputs (`terraform -chdir=terraform outpu
 - `api_base_url`: the API's address. It goes into the dashboard's `config.json` as `apiBaseUrl`.
 - `uploads_bucket`, `reports_bucket`, `scan_queue_url`: the names the Lambdas get as `UPLOADS_BUCKET`, `REPORTS_BUCKET` and `QUEUE_URL`.
 - `table_names`: the DynamoDB tables (the users table is needed for `add-user`).
+- `network` and `scanners`: the private subnets, the scanner security group, the ECS cluster and the task definitions, which the launcher uses to start scans.
 
 **5. Create a login user:**
 
@@ -172,7 +176,11 @@ npm ci                  # install dependencies
 npm run check           # format check, lint, type check and tests
 npm run build           # bundle each lambdas/<name>/handler.ts for Terraform
 npm run add-user -- --username <name> --role user --table <users table>
+scripts/build_scanner_images.sh                  # build the scanner images to test locally
+scripts/build_scanner_images.sh --push <prefix>  # build for Fargate and push to ECR in your lab
 ```
+
+The scanner images, how to test them on a laptop with no AWS, and the settings the launcher passes them are in [docs/scanners.md](docs/scanners.md).
 
 ## Tearing down
 
@@ -185,6 +193,8 @@ This removes what Terraform built, including the uploads and reports buckets and
 ```bash
 aws ssm delete-parameter --name /security-hub/jwt-secret
 ```
+
+The scanner images' ECR repositories (`<prefix>-semgrep`, `<prefix>-zap`) were made by the push script, not Terraform; see [docs/scanners.md](docs/scanners.md#building-and-pushing) to delete them.
 
 ## Troubleshooting
 

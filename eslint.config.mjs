@@ -4,7 +4,7 @@ import security from "eslint-plugin-security";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["node_modules/", "build/", "dist/", "terraform/", "scanners/", "graphify-out/"] },
+  { ignores: ["node_modules/", "build/", "dist/", "terraform/", "graphify-out/"] },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   security.configs.recommended,
@@ -31,6 +31,11 @@ export default tseslint.config(
     files: ["scripts/**"],
     languageOptions: { globals: { process: "readonly", console: "readonly" } },
     rules: { "no-console": "off", "security/detect-non-literal-fs-filename": "off" },
+  },
+  {
+    // Scanner wrappers read and write files only in their own job folder.
+    files: ["scanners/**"],
+    rules: { "security/detect-non-literal-fs-filename": "off" },
   },
   {
     files: ["**/*.mjs"],

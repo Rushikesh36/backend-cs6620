@@ -14,8 +14,9 @@ allowed_origin       = "http://my-frontend-bucket.s3-website-us-east-1.amazonaws
 vpc_cidr = "10.20.0.0/16"
 az_count = 2
 
-semgrep_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/semgrep-scanner:1.4.0-abc1234"
-zap_image_uri     = "123456789012.dkr.ecr.us-east-1.amazonaws.com/zap-scanner:2.15.0-abc1234"
+# Printed by scripts/build_scanner_images.sh --push <name_prefix> (docs/scanners.md).
+semgrep_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/yourname-sh-semgrep:1.183.0-1"
+zap_image_uri     = "123456789012.dkr.ecr.us-east-1.amazonaws.com/yourname-sh-zap:2.17.0-1"
 
 alert_email            = "you@example.com"
 token_lifetime_seconds = 3600

@@ -63,3 +63,21 @@ output "network" {
     test_app_port           = var.test_app_port
   }
 }
+
+output "scanners" {
+  description = "Everything the launcher (Task 20) needs for ecs:RunTask, per scan type. See docs/scanners.md."
+  value = {
+    cluster_arn    = aws_ecs_cluster.scanners.arn
+    cluster_name   = aws_ecs_cluster.scanners.name
+    container_name = local.scanner_container_name
+    task_definitions = {
+      for type, task in local.scanner_tasks : type => {
+        family = aws_ecs_task_definition.scanner[type].family
+        arn    = aws_ecs_task_definition.scanner[type].arn
+        # Saved on the job record as imageTag (architecture 5.4).
+        image_tag = regex(":([A-Za-z0-9_.-]+)$", task.image_uri)[0]
+        log_group = aws_cloudwatch_log_group.scanner[type].name
+      }
+    }
+  }
+}
