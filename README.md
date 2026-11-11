@@ -20,21 +20,22 @@ Progress and decisions are tracked in [TASKS.md](TASKS.md). Design notes are in 
 
 ## What is built so far
 
-| Piece                                                                                                                                                        | Where                                                      |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| DynamoDB tables: users, jobs (3 indexes), findings                                                                                                           | `terraform/dynamodb.tf`                                    |
-| API Gateway HTTP API: CORS, throttling, JWT authorizer                                                                                                       | `terraform/api.tf`                                         |
-| Routes `POST /login`, `GET /targets`, `POST /scans`                                                                                                          | `terraform/routes.tf`                                      |
-| Lambdas: login, authorizer, targets (DAST allow-list), create-scan (job + pre-signed upload link)                                                            | `lambdas/`, `terraform/lambdas.tf`, `terraform/targets.tf` |
-| S3 buckets: uploads (`uploads/<jobId>.zip`, kept 1 day, browser PUT via CORS) and reports (`reports/<jobId>.json`, kept 14 days); both private and encrypted | `terraform/storage.tf`                                     |
-| SQS scan queue with a dead-letter queue (3 tries)                                                                                                            | `terraform/queue.tf`                                       |
-| Reusable Terraform for a Lambda and for a route                                                                                                              | `terraform/modules/lambda`, `terraform/modules/route`      |
-| Shared Lambda code: responses, errors, validation, logging, JWT, secrets                                                                                     | `common/`                                                  |
-| Finding fingerprints and the scan diff (new, still open, fixed)                                                                                              | `common/findings/fingerprint.ts`, `diff.ts`                |
-| Semgrep and ZAP report parsers                                                                                                                               | `common/findings/semgrep.ts`, `zap.ts`                     |
-| Scanner images: Semgrep (SAST) and ZAP (DAST), offline, with zip-bomb limits and pinned versions                                                             | `scanners/`, [docs/scanners.md](docs/scanners.md)          |
-| `add-user` script to create login users                                                                                                                      | `scripts/add_user.ts`                                      |
-| Not yet: launcher, ECS cluster and task definitions, reaper, SNS alerts, `GET /scans`, test app in the VPC, alarms                                           | see [TASKS.md](TASKS.md)                                   |
+| Piece                                                                                                                                                        | Where                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| DynamoDB tables: users, jobs (3 indexes), findings                                                                                                           | `terraform/dynamodb.tf`                                                 |
+| API Gateway HTTP API: CORS, throttling, JWT authorizer                                                                                                       | `terraform/api.tf`                                                      |
+| Routes `POST /login`, `GET /targets`, `POST /scans`                                                                                                          | `terraform/routes.tf`                                                   |
+| Lambdas: login, authorizer, targets (DAST allow-list), create-scan (job + pre-signed upload link)                                                            | `lambdas/`, `terraform/lambdas.tf`, `terraform/targets.tf`              |
+| S3 buckets: uploads (`uploads/<jobId>.zip`, kept 1 day, browser PUT via CORS) and reports (`reports/<jobId>.json`, kept 14 days); both private and encrypted | `terraform/storage.tf`                                                  |
+| SQS scan queue with a dead-letter queue (3 tries)                                                                                                            | `terraform/queue.tf`                                                    |
+| Reusable Terraform for a Lambda and for a route                                                                                                              | `terraform/modules/lambda`, `terraform/modules/route`                   |
+| Shared Lambda code: responses, errors, validation, logging, JWT, secrets                                                                                     | `common/`                                                               |
+| Finding fingerprints and the scan diff (new, still open, fixed)                                                                                              | `common/findings/fingerprint.ts`, `diff.ts`                             |
+| Semgrep and ZAP report parsers                                                                                                                               | `common/findings/semgrep.ts`, `zap.ts`                                  |
+| ECS cluster, Semgrep and ZAP task definitions, EventBridge rule that sends stopped tasks to the processor                                                    | `terraform/ecs.tf`, [docs/scanners.md](docs/scanners.md#on-ecs-task-22) |
+| Scanner images: Semgrep (SAST) and ZAP (DAST), offline, with zip-bomb limits and pinned versions                                                             | `scanners/`, [docs/scanners.md](docs/scanners.md)                       |
+| `add-user` script to create login users                                                                                                                      | `scripts/add_user.ts`                                                   |
+| Not yet: launcher, reaper, SNS alerts, `GET /scans`, test app in the VPC, alarms                                                                             | see [TASKS.md](TASKS.md)                                                |
 
 ## Repo layout
 
@@ -132,6 +133,7 @@ Check the list and type `yes`. Useful outputs (`terraform -chdir=terraform outpu
 - `api_base_url`: the API's address. It goes into the dashboard's `config.json` as `apiBaseUrl`.
 - `uploads_bucket`, `reports_bucket`, `scan_queue_url`: the names the Lambdas get as `UPLOADS_BUCKET`, `REPORTS_BUCKET` and `QUEUE_URL`.
 - `table_names`: the DynamoDB tables (the users table is needed for `add-user`).
+- `network` and `scanners`: the private subnets, the scanner security group, the ECS cluster and the task definitions, which the launcher uses to start scans.
 
 **5. Create a login user:**
 

@@ -26,17 +26,17 @@ Only the raw report is uploaded. The architecture mentions a normalised report t
 
 ## Settings (container environment)
 
-The launcher (Task 20) sets these as container overrides; the task definition (Task 22) can set the fixed ones.
+The task definitions (Task 22, `terraform/ecs.tf`) already set the ones that are the same for every job. The launcher (Task 20) adds only the per-job ones as container overrides: `JOB_ID`, and `TARGET_URL` for DAST.
 
-| Variable               | Image   | Required | Meaning                                                                        |
-| ---------------------- | ------- | -------- | ------------------------------------------------------------------------------ |
-| `JOB_ID`               | both    | yes      | The job's ID (a UUID). Every log line carries it.                              |
-| `REPORTS_BUCKET`       | both    | yes      | Bucket for `reports/<jobId>.json`.                                             |
-| `UPLOADS_BUCKET`       | Semgrep | yes      | Bucket holding `uploads/<jobId>.zip`.                                          |
-| `TARGET_URL`           | ZAP     | yes      | The test app's real URL from the allow-list. `http` or `https`, no password.   |
-| `SCAN_TIMEOUT_SECONDS` | both    | no       | Hard timeout, 60 to 1,380 (23 minutes). Default: 600 (Semgrep), 1,320 (ZAP).   |
-| `AWS_REGION`           | both    | no       | Set it in the task definition (`us-east-1`) so the AWS SDK never has to guess. |
-| `S3_ENDPOINT`          | both    | no       | Local testing only: a local S3 stand-in. Never set it in AWS.                  |
+| Variable               | Image   | Required | Meaning                                                                      |
+| ---------------------- | ------- | -------- | ---------------------------------------------------------------------------- |
+| `JOB_ID`               | both    | yes      | The job's ID (a UUID). Every log line carries it. **Launcher override.**     |
+| `REPORTS_BUCKET`       | both    | yes      | Bucket for `reports/<jobId>.json`. Set in the task definition.               |
+| `UPLOADS_BUCKET`       | Semgrep | yes      | Bucket holding `uploads/<jobId>.zip`. Set in the task definition.            |
+| `TARGET_URL`           | ZAP     | yes      | The test app's real URL from the allow-list. **Launcher override.**          |
+| `SCAN_TIMEOUT_SECONDS` | both    | no       | Hard timeout, 60 to 1,380 (23 minutes). Default: 600 (Semgrep), 1,320 (ZAP). |
+| `AWS_REGION`           | both    | no       | Set in the task definition, so the AWS SDK never has to guess.               |
+| `S3_ENDPOINT`          | both    | no       | Local testing only: a local S3 stand-in. Never set it in AWS.                |
 
 The S3 keys come from `JOB_ID` (`uploads/<jobId>.zip`, `reports/<jobId>.json`), the same as in create-scan and the processor (a test checks they agree), so the launcher never passes a key.
 
@@ -119,14 +119,51 @@ aws ecr delete-repository --repository-name <name_prefix>-semgrep --force
 aws ecr delete-repository --repository-name <name_prefix>-zap --force
 ```
 
-## Notes for the task definitions (Task 22)
+## On ECS (Task 22)
 
-- Platform `X86_64` (`linux/amd64`), the architecture the push script builds.
-- The root file system must be writable: Semgrep unpacks into `/tmp`, ZAP writes to `/zap/wrk`.
-- `stopTimeout` of 30 seconds gives the wrapper time to stop the scanner.
-- Set `AWS_REGION`. The task role (LabRole) needs `s3:GetObject` on the uploads bucket and `s3:PutObject` on the reports bucket.
-- Memory: ZAP needs much more than Semgrep. Scanning Juice Shop on a laptop, ZAP's Java process used about 1.2 GB, and during the active scan its DOM XSS rule started headless Firefox browsers (about 300 MB each), taking the whole container to about 6.4 GB. Give the ZAP task 8 GB. Semgrep used well under 1 GB on the sample app.
-- Logs: the wrappers write JSON lines to stdout (scanner output too, one line per entry, with the jobId), ready for the `awslogs` driver.
+`terraform/ecs.tf` builds:
+
+| Name (with your prefix, for example `geetha-sh`) | What it is                                                                                |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `<prefix>-scanners`                              | The ECS cluster. Container Insights off (it costs extra).                                 |
+| `<prefix>-semgrep`                               | SAST task definition: 1 vCPU, 2 GB, image `semgrep_image_uri`                             |
+| `<prefix>-zap`                                   | DAST task definition: 2 vCPU, 8 GB, image `zap_image_uri`                                 |
+| `scanner`                                        | The container name in both task definitions, so the launcher's override is the same       |
+| `/ecs/<prefix>-semgrep`, `/ecs/<prefix>-zap`     | Log groups (stream `scan/scanner/<taskId>`), kept `log_retention_days` like the Lambdas'  |
+| `<prefix>-scanner-task-stopped`                  | EventBridge rule: ECS "Task State Change", `lastStatus` STOPPED, this cluster → processor |
+
+The task definitions reuse what already exists: LabRole as both the execution role and the task role, and the buckets from `storage.tf`. On Fargate the network is not part of a task definition: the launcher passes the private subnets and the scanner security group from `network.tf` with each `RunTask`. The task definitions run `X86_64` (what the push script builds), stop with a 30-second `stopTimeout` so the wrapper can stop the scanner, and keep a writable root file system (Semgrep unpacks into `/tmp`, ZAP writes to `/zap/wrk`). ZAP gets 8 GB because its DOM XSS rule starts headless Firefox browsers: scanning Juice Shop on a laptop took the container to about 6.4 GB. Semgrep used well under 1 GB on the sample app.
+
+The processor tolerates repeated events, so the rule's target retries (up to 10 times, for at most an hour). A job whose event never arrives is left to the reaper (Task 23).
+
+## For the launcher (Task 20)
+
+Everything the launcher needs is in one Terraform output, `scanners`, so its Lambda's environment can be filled from it instead of repeating names:
+
+```
+scanners = {
+  cluster_arn    = "arn:aws:ecs:us-east-1:<account>:cluster/<prefix>-scanners"
+  cluster_name   = "<prefix>-scanners"
+  container_name = "scanner"
+  task_definitions = {
+    SAST = { family = "<prefix>-semgrep", arn = "...", image_tag = "1.183.0-1", log_group = "/ecs/<prefix>-semgrep" }
+    DAST = { family = "<prefix>-zap",     arn = "...", image_tag = "2.17.0-1",  log_group = "/ecs/<prefix>-zap" }
+  }
+}
+```
+
+The network comes from the existing `network` output: `private_subnet_ids` and `scanner_security_group`. In Terraform, the same values are `aws_ecs_cluster.scanners.arn`, `aws_ecs_task_definition.scanner["SAST"]` / `["DAST"]`, `local.scanner_container_name`, `aws_subnet.private[*].id` and `aws_security_group.scanner.id`.
+
+One `RunTask` per job, keyed by the job's `scanType`:
+
+- `cluster`: the cluster ARN; `launchType`: `FARGATE`; `count`: 1
+- `taskDefinition`: the family (`<prefix>-semgrep` or `<prefix>-zap`); ECS uses its latest revision
+- `startedBy`: the job ID (the processor and the reaper find the job through it)
+- `networkConfiguration.awsvpcConfiguration`: the private subnets, the scanner security group, `assignPublicIp: DISABLED`
+- `overrides.containerOverrides`: `[{ name: "scanner", environment: [{ name: "JOB_ID", value: <jobId> }] }]`, plus `TARGET_URL` (the real URL for the job's `targetId`) for DAST
+- The job record's `imageTag`: `image_tag` for the scan type
+
+The launcher Lambda needs `ecs:RunTask` and `iam:PassRole` on LabRole (to be confirmed in a lab, see TASKS.md).
 
 ## Testing on a laptop
 
