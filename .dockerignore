@@ -1,0 +1,9 @@
+# The scanner images are built from the repo root. Send Docker only what they need: never
+# Terraform state, tfvars, credentials or node_modules.
+*
+!package.json
+!package-lock.json
+!tsconfig.json
+!common/
+!scanners/
+!scripts/package_scanners.mjs

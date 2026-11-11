@@ -15,6 +15,6 @@
     "resolveJsonModule": true,
     "noEmit": true
   },
-  "include": ["common", "lambdas", "scripts", "tests", "*.ts", "*.mjs"],
-  "exclude": ["node_modules", "build", "scanners"]
+  "include": ["common", "lambdas", "scanners", "scripts", "tests", "*.ts", "*.mjs"],
+  "exclude": ["node_modules", "build"]
 }
