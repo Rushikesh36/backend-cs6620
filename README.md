@@ -112,13 +112,19 @@ aws iam get-role --role-name LabRole --query Role.Arn --output text
 npm run create-jwt-secret
 ```
 
-**3. Bundle the Lambdas.** Terraform zips them from `build/lambdas/`, so this must run before every `plan` or `apply` after a code change:
+**3. Create the S3 buckets** (once per lab). Terraform cannot create them in Learner Lab (see [Learner Lab restrictions](#learner-lab-restrictions)), so this script does. Use the same `name_prefix` as in your tfvars file. It is safe to run again:
+
+```bash
+scripts/manage_buckets.sh create <name_prefix>
+```
+
+**4. Bundle the Lambdas.** Terraform zips them from `build/lambdas/`, so this must run before every `plan` or `apply` after a code change:
 
 ```bash
 npm ci && npm run build
 ```
 
-**4. Build the AWS resources:**
+**5. Build the AWS resources:**
 
 ```bash
 terraform -chdir=terraform init
@@ -135,7 +141,7 @@ Check the list and type `yes`. Useful outputs (`terraform -chdir=terraform outpu
 - `table_names`: the DynamoDB tables (the users table is needed for `add-user`).
 - `network` and `scanners`: the private subnets, the scanner security group, the ECS cluster and the task definitions, which the launcher uses to start scans.
 
-**5. Create a login user:**
+**6. Create a login user:**
 
 ```bash
 npm run add-user -- --username <name> --role user --table <users table>
@@ -166,7 +172,7 @@ Each of us has a separate AWS account. The code is shared; three small things ar
 These shape the code. Please keep them in mind when adding resources.
 
 - **No new IAM roles.** Every Lambda and Fargate task uses the existing `LabRole` (`lab_role_arn`).
-- **S3 buckets (check before deploying).** In an earlier Learner Lab test (October 2026), Terraform's `aws_s3_bucket` resource failed with `AccessDenied ... explicit deny in a service control policy`, because it reads `s3:GetBucketObjectLockConfiguration` after creating a bucket. `terraform/storage.tf` uses this resource for the uploads and reports buckets. Run `apply` in one lab early; if you see this error, tell the owner of Task 11 before the others deploy.
+- **S3 buckets are created by a script, not Terraform.** Terraform's `aws_s3_bucket` resource reads `s3:GetBucketObjectLockConfiguration` after creating a bucket, and Learner Lab denies it (`AccessDenied ... explicit deny in a service control policy`). The bucket gets created but every later plan, apply and destroy fails. So `scripts/manage_buckets.sh create <name_prefix>` makes the uploads and reports buckets, and `terraform/storage.tf` looks them up by name (`data "aws_s3_bucket"`) and still manages their settings (public access block, encryption, lifecycle, CORS). Do not switch them back to the `aws_s3_bucket` resource.
 - **Region** is always `us-east-1`.
 
 ## Development commands
@@ -176,6 +182,7 @@ npm ci                  # install dependencies
 npm run check           # format check, lint, type check and tests
 npm run build           # bundle each lambdas/<name>/handler.ts for Terraform
 npm run add-user -- --username <name> --role user --table <users table>
+scripts/manage_buckets.sh create <prefix>        # create the uploads and reports buckets (delete: same, with `delete`)
 scripts/build_scanner_images.sh                  # build the scanner images to test locally
 scripts/build_scanner_images.sh --push <prefix>  # build for Fargate and push to ECR in your lab
 ```
@@ -188,7 +195,13 @@ The scanner images, how to test them on a laptop with no AWS, and the settings t
 terraform -chdir=terraform destroy -var-file=env/<yourname>.tfvars
 ```
 
-This removes what Terraform built, including the uploads and reports buckets and everything in them (`force_destroy`). The JWT secret was made outside Terraform; delete it by hand if you need to:
+This removes what Terraform built. The two S3 buckets were made by a script, so delete them after the destroy (this also deletes everything inside them):
+
+```bash
+scripts/manage_buckets.sh delete <name_prefix>
+```
+
+The JWT secret was made outside Terraform; delete it by hand if you need to:
 
 ```bash
 aws ssm delete-parameter --name /security-hub/jwt-secret
@@ -203,4 +216,5 @@ The scanner images' ECR repositories (`<prefix>-semgrep`, `<prefix>-zap`) were m
 - **`Given variables file env/... does not exist`.** Terraform ran in the wrong folder. Use `terraform -chdir=terraform ...` from the repo root, or `cd terraform` first.
 - **Terraform cannot find a file in `build/lambdas/`.** The Lambdas are not bundled yet. Run `npm run build`.
 - **Login answers 500 and its logs show `ParameterNotFound` or "JWT secret is not set in SSM".** Create the secret (step 2 of the setup).
-- **`reading S3 Bucket ... object lock configuration ... AccessDenied`.** See [Learner Lab restrictions](#learner-lab-restrictions).
+- **`reading S3 Bucket ... object lock configuration ... AccessDenied`.** The bucket is being created by Terraform. Buckets come from `scripts/manage_buckets.sh`; see [Learner Lab restrictions](#learner-lab-restrictions).
+- **`Error: reading S3 Bucket (...): ... NotFound` or `no matching S3 Bucket found`.** The buckets do not exist yet. Run `scripts/manage_buckets.sh create <name_prefix>` with the same prefix as your tfvars file, in the same lab account.

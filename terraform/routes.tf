@@ -44,7 +44,7 @@ module "create_scan" {
 
   environment = {
     JOBS_TABLE     = aws_dynamodb_table.jobs.name
-    UPLOADS_BUCKET = aws_s3_bucket.uploads.bucket
+    UPLOADS_BUCKET = data.aws_s3_bucket.uploads.bucket
     TARGETS_JSON   = jsonencode(local.targets)
   }
 }
@@ -98,7 +98,7 @@ module "start_scan" {
 
   environment = {
     JOBS_TABLE     = aws_dynamodb_table.jobs.name
-    UPLOADS_BUCKET = aws_s3_bucket.uploads.bucket
+    UPLOADS_BUCKET = data.aws_s3_bucket.uploads.bucket
     QUEUE_URL      = aws_sqs_queue.scan.url
   }
 }

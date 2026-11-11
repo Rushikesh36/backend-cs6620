@@ -30,12 +30,12 @@ output "api_id" {
 
 output "uploads_bucket" {
   description = "Bucket for SAST zip uploads. Lambdas read it as UPLOADS_BUCKET."
-  value       = aws_s3_bucket.uploads.bucket
+  value       = data.aws_s3_bucket.uploads.bucket
 }
 
 output "reports_bucket" {
   description = "Bucket for scanner reports. Lambdas read it as REPORTS_BUCKET."
-  value       = aws_s3_bucket.reports.bucket
+  value       = data.aws_s3_bucket.reports.bucket
 }
 
 output "scan_queue_url" {
