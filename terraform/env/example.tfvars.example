@@ -19,5 +19,7 @@ semgrep_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/yourname-sh-se
 zap_image_uri     = "123456789012.dkr.ecr.us-east-1.amazonaws.com/yourname-sh-zap:2.17.0-1"
 
 alert_email            = "you@example.com"
+# Optional: more addresses for the same alerts. Each gets its own confirmation email.
+# extra_alert_emails = ["teammate@example.com"]
 token_lifetime_seconds = 3600
 juice_shop_url         = "http://juice-shop.internal:3000"

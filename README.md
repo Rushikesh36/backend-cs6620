@@ -109,7 +109,7 @@ aws iam get-role --role-name LabRole --query Role.Arn --output text
 - `frontend_bucket_name`: the S3 bucket the dashboard is hosted in. It must already exist (the frontend team creates it). Terraform turns on website hosting, makes it publicly readable and writes `config.json` (`apiBaseUrl`, `environment`) into it. The output `frontend_website_url` is the dashboard's address and must equal `allowed_origin`.
 - `allowed_origin`: the dashboard's address, `http://<frontend_bucket_name>.s3-website-us-east-1.amazonaws.com`. The API and the uploads bucket allow browser requests from this address only (CORS). To use the dashboard on your laptop instead, set it to `http://localhost:3000`.
 - There is no VPC to look up: Terraform creates a dedicated one (`network.tf`). `vpc_cidr` and `az_count` have defaults and can be left out.
-- `alert_email`: where the new-HIGH-finding emails go. After the first `apply`, AWS sends this address a "Subscription Confirmation" email; click the link in it, or no alert arrives.
+- `alert_email`: where the new-HIGH-finding emails go. After the first `apply`, AWS sends this address a "Subscription Confirmation" email; click the link in it, or no alert arrives. To send the alerts to the rest of the team too, list their addresses in `extra_alert_emails`; each of them gets the same confirmation email.
 - `semgrep_image_uri` and `zap_image_uri`: printed by `scripts/build_scanner_images.sh --push <name_prefix>` (see [docs/scanners.md](docs/scanners.md)).
 - `juice_shop_url` can stay a placeholder until the test app is built (Task 31).
 
