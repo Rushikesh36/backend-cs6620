@@ -13,8 +13,9 @@ import {
 import { parseZap } from "../../common/findings/zap.js";
 import { logger } from "../../common/logger.js";
 import { toScanItem } from "../../common/scan-item.js";
-import { isValidJobId } from "../../common/validation.js";
+import { isValidJobId, type ScanType } from "../../common/validation.js";
 import { COULD_NOT_START_MESSAGE } from "../start-scan/start-scan.js";
+import { shouldAlert, type ScanAlert } from "./alert.js";
 
 /** Where the scanner wrapper (Task 21) writes the raw Semgrep or ZAP JSON report. */
 export const reportKey = (jobId: string): string => `reports/${jobId}.json`;
@@ -45,6 +46,8 @@ export interface ProcessorDeps {
   writeFindings: WriteFindings;
   complete: (jobId: string, summary: ScanSummary, finishedAt: string) => Promise<boolean>;
   fail: (jobId: string, error: string, finishedAt: string) => Promise<boolean>;
+  /** Sends the new-HIGH email (Task 24, publishAlert in alert.ts). */
+  alert: (alert: ScanAlert) => Promise<void>;
   now?: () => Date;
 }
 
@@ -52,7 +55,14 @@ export type Outcome =
   | { result: "ignored"; reason: string }
   | { result: "already-final"; jobId: string }
   | { result: "failed"; jobId: string; error: string }
-  | { result: "completed"; jobId: string; projectId: string; summary: ScanSummary };
+  | {
+      result: "completed";
+      jobId: string;
+      projectId: string;
+      scanType: ScanType;
+      summary: ScanSummary;
+      alerted: boolean;
+    };
 
 /**
  * Handles one stopped scanner task (docs/architecture.md 5.5). The job comes from `startedBy`
@@ -142,7 +152,25 @@ export async function processStoppedTask(
     return { result: "already-final", jobId };
   }
   logger.info("Job completed", { jobId, projectId: scan.projectId, summary });
-  return { result: "completed", jobId, projectId: scan.projectId, summary };
+  const alert = { jobId, projectId: scan.projectId, scanType: scan.scanType, summary };
+  const alerted = shouldAlert(summary) && (await sendAlert(alert, deps));
+  return { result: "completed", ...alert, alerted };
+}
+
+/**
+ * Sends the alert once, after the job is COMPLETED. A failure is logged, not thrown: a Lambda
+ * retry would find the job already final and skip it, so the email would be lost either way,
+ * while the findings are already saved.
+ */
+async function sendAlert(alert: ScanAlert, deps: ProcessorDeps): Promise<boolean> {
+  try {
+    await deps.alert(alert);
+    logger.info("Alert sent", { jobId: alert.jobId, newHigh: alert.summary.newHigh });
+    return true;
+  } catch (err) {
+    logger.error("Alert could not be sent", { jobId: alert.jobId, error: err });
+    return false;
+  }
 }
 
 function ignored(reason: string, jobId: string): Outcome {

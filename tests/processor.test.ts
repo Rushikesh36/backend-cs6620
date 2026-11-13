@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { GetObjectCommand, NoSuchKey, S3Client } from "@aws-sdk/client-s3";
+import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
 import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import {
   BatchWriteCommand,
@@ -25,6 +26,7 @@ import {
   type ProcessorDeps,
 } from "../lambdas/processor/processor.js";
 import { COULD_NOT_START_MESSAGE } from "../lambdas/start-scan/start-scan.js";
+import type { ScanAlert } from "../lambdas/processor/alert.js";
 
 const JOB_1 = "123e4567-e89b-42d3-a456-426614174001";
 const JOB_2 = "123e4567-e89b-42d3-a456-426614174002";
@@ -90,6 +92,7 @@ function fakeAws() {
   const jobs = new Map<string, Record<string, unknown>>();
   const findings = new Map<string, Map<string, StoredFinding & { pk: string }>>();
   const reports = new Map<string, string>();
+  const alerts: ScanAlert[] = [];
   const transition = (jobId: string, to: JobStatus, extra: Record<string, unknown>) => {
     const record = jobs.get(jobId);
     if (!record || !ALLOWED_FROM[to].includes(record.status as JobStatus)) {
@@ -117,9 +120,13 @@ function fakeAws() {
     complete: (jobId, summary, finishedAt) =>
       transition(jobId, "COMPLETED", { summary, finishedAt }),
     fail: (jobId, error, finishedAt) => transition(jobId, "FAILED", { error, finishedAt }),
+    alert: (alert) => {
+      alerts.push(alert);
+      return Promise.resolve();
+    },
     now: () => new Date("2026-11-08T10:05:00.000Z"),
   };
-  return { jobs, findings, reports, deps };
+  return { jobs, findings, reports, alerts, deps };
 }
 
 describe("processStoppedTask: successful scans", () => {
@@ -131,7 +138,14 @@ describe("processStoppedTask: successful scans", () => {
     const outcome = await processStoppedTask(stopped(JOB_1, 0), aws.deps);
 
     const summary: ScanSummary = { new: 6, newHigh: 4, stillOpen: 0, fixed: 0 };
-    expect(outcome).toEqual({ result: "completed", jobId: JOB_1, projectId: "demo-app", summary });
+    expect(outcome).toEqual({
+      result: "completed",
+      jobId: JOB_1,
+      projectId: "demo-app",
+      scanType: "SAST",
+      summary,
+      alerted: true,
+    });
     expect(aws.jobs.get(JOB_1)).toMatchObject({
       status: "COMPLETED",
       summary,
@@ -318,6 +332,67 @@ describe("processStoppedTask: events it must leave alone", () => {
   });
 });
 
+describe("processStoppedTask: new-HIGH alert (Task 24)", () => {
+  it("sends one alert when the scan has new HIGH findings", async () => {
+    const aws = fakeAws();
+    aws.jobs.set(JOB_1, job(JOB_1));
+    aws.reports.set(JOB_1, semgrepReport("v1"));
+
+    await processStoppedTask(stopped(JOB_1, 0), aws.deps);
+
+    expect(aws.alerts).toEqual([
+      {
+        jobId: JOB_1,
+        projectId: "demo-app",
+        scanType: "SAST",
+        summary: { new: 6, newHigh: 4, stillOpen: 0, fixed: 0 },
+      },
+    ]);
+  });
+
+  it("sends nothing when nothing new is HIGH", async () => {
+    const aws = fakeAws();
+    aws.jobs.set(JOB_1, job(JOB_1));
+    aws.jobs.set(JOB_2, job(JOB_2));
+    aws.reports.set(JOB_1, semgrepReport("v1"));
+    aws.reports.set(JOB_2, semgrepReport("v1"));
+    await processStoppedTask(stopped(JOB_1, 0), aws.deps);
+    aws.alerts.length = 0;
+
+    // The same code again: everything is STILL_OPEN, newHigh is 0.
+    const outcome = await processStoppedTask(stopped(JOB_2, 0), aws.deps);
+
+    expect(outcome).toMatchObject({ result: "completed", summary: { newHigh: 0 }, alerted: false });
+    expect(aws.alerts).toEqual([]);
+  });
+
+  it("sends nothing for a failed scan or a repeated event", async () => {
+    const aws = fakeAws();
+    aws.jobs.set(JOB_1, job(JOB_1));
+    aws.jobs.set(JOB_2, job(JOB_2));
+    aws.reports.set(JOB_2, semgrepReport("v1"));
+
+    await processStoppedTask(stopped(JOB_1, 1), aws.deps);
+    await processStoppedTask(stopped(JOB_2, 0), aws.deps);
+    await processStoppedTask(stopped(JOB_2, 0), aws.deps);
+
+    expect(aws.alerts.map((a) => a.jobId)).toEqual([JOB_2]);
+  });
+
+  it("an alert that cannot be sent is logged, and the job stays COMPLETED", async () => {
+    const aws = fakeAws();
+    aws.jobs.set(JOB_1, job(JOB_1));
+    aws.reports.set(JOB_1, semgrepReport("v1"));
+    aws.deps.alert = () => Promise.reject(new Error("SNS is down"));
+
+    const outcome = await processStoppedTask(stopped(JOB_1, 0), aws.deps);
+
+    expect(outcome).toMatchObject({ result: "completed", alerted: false });
+    expect(aws.jobs.get(JOB_1)).toMatchObject({ status: "COMPLETED" });
+    expect(aws.findings.get("demo-app#SAST")?.size).toBe(6);
+  });
+});
+
 describe("writeFindingsToTable", () => {
   const ddb = mockClient(DynamoDBDocumentClient);
   beforeEach(() => ddb.reset());
@@ -375,12 +450,16 @@ describe("writeFindingsToTable", () => {
 describe("processor handler with the AWS SDK", () => {
   const ddb = mockClient(DynamoDBDocumentClient);
   const s3 = mockClient(S3Client);
+  const sns = mockClient(SNSClient);
   const event = (detail: EcsTaskDetail) =>
     ({ "detail-type": "ECS Task State Change", detail }) as never;
 
   beforeEach(() => {
     ddb.reset();
     s3.reset();
+    sns.reset();
+    sns.on(PublishCommand).resolves({ MessageId: "m-1" });
+    process.env.ALERTS_TOPIC_ARN = "arn:aws:sns:us-east-1:123456789012:demo-alerts";
     process.env.JOBS_TABLE = "jobs";
     process.env.FINDINGS_TABLE = "findings";
     process.env.REPORTS_BUCKET = "reports-bucket";
@@ -453,5 +532,17 @@ describe("processor handler with the AWS SDK", () => {
   it("a DynamoDB outage throws, so Lambda retries the event", async () => {
     ddb.on(GetCommand).rejects(new Error("Service unavailable"));
     await expect(handler(event(stopped(JOB_1, 0)))).rejects.toThrow("Service unavailable");
+  });
+
+  it("publishes the alert to ALERTS_TOPIC_ARN", async () => {
+    const text = semgrepReport("v1");
+    s3.on(GetObjectCommand).resolves({ Body: body(text), ContentLength: text.length });
+
+    expect(await handler(event(stopped(JOB_1, 0)))).toMatchObject({ alerted: true });
+
+    const input = sns.commandCalls(PublishCommand)[0]?.args[0].input;
+    expect(input?.TopicArn).toBe("arn:aws:sns:us-east-1:123456789012:demo-alerts");
+    expect(input?.Subject).toBe("Security Hub: 4 new HIGH findings in demo-app (SAST)");
+    expect(input?.Message).toContain(JOB_1);
   });
 });

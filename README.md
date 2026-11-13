@@ -35,7 +35,8 @@ Progress and decisions are tracked in [TASKS.md](TASKS.md). Design notes are in 
 | ECS cluster, Semgrep and ZAP task definitions, EventBridge rule that sends stopped tasks to the processor                                                    | `terraform/ecs.tf`, [docs/scanners.md](docs/scanners.md#on-ecs-task-22) |
 | Scanner images: Semgrep (SAST) and ZAP (DAST), offline, with zip-bomb limits and pinned versions                                                             | `scanners/`, [docs/scanners.md](docs/scanners.md)                       |
 | `add-user` script to create login users                                                                                                                      | `scripts/add_user.ts`                                                   |
-| Not yet: launcher, reaper, SNS alerts, `GET /scans`, test app in the VPC, alarms                                                                             | see [TASKS.md](TASKS.md)                                                |
+| Email alert (SNS) when a scan finds new HIGH findings, sent by the processor                                                                                 | `terraform/alerts.tf`, `lambdas/processor/alert.ts`                     |
+| Not yet: launcher, reaper, `GET /scans`, test app in the VPC, alarms                                                                                         | see [TASKS.md](TASKS.md)                                                |
 
 ## Repo layout
 
@@ -104,7 +105,9 @@ aws iam get-role --role-name LabRole --query Role.Arn --output text
 - `frontend_bucket_name`: the S3 bucket the dashboard is hosted in.
 - `allowed_origin`: the dashboard's address, `http://<frontend_bucket_name>.s3-website-us-east-1.amazonaws.com`. The API and the uploads bucket allow browser requests from this address only (CORS). To use the dashboard on your laptop instead, set it to `http://localhost:3000`.
 - There is no VPC to look up: Terraform creates a dedicated one (`network.tf`). `vpc_cidr` and `az_count` have defaults and can be left out.
-- Scanner images, `alert_email` and `juice_shop_url` can stay as placeholders until their tasks are built.
+- `alert_email`: where the new-HIGH-finding emails go. After the first `apply`, AWS sends this address a "Subscription Confirmation" email; click the link in it, or no alert arrives.
+- `semgrep_image_uri` and `zap_image_uri`: printed by `scripts/build_scanner_images.sh --push <name_prefix>` (see [docs/scanners.md](docs/scanners.md)).
+- `juice_shop_url` can stay a placeholder until the test app is built (Task 31).
 
 **2. Create the JWT signing secret** (once per lab). Login signs its tokens with a secret kept in SSM Parameter Store, never in Terraform, so it stays out of the state file. The name must match `jwt_secret_ssm_name` (default `/security-hub/jwt-secret`). The script generates a random 48-byte secret and stores it straight in SSM. It is never printed. It refuses to replace an existing secret unless you pass `--rotate` (which signs every user out):
 
@@ -140,6 +143,7 @@ Check the list and type `yes`. Useful outputs (`terraform -chdir=terraform outpu
 - `uploads_bucket`, `reports_bucket`, `scan_queue_url`: the names the Lambdas get as `UPLOADS_BUCKET`, `REPORTS_BUCKET` and `QUEUE_URL`.
 - `table_names`: the DynamoDB tables (the users table is needed for `add-user`).
 - `network` and `scanners`: the private subnets, the scanner security group, the ECS cluster and the task definitions, which the launcher uses to start scans.
+- `alerts_topic_arn`: the SNS topic for the new-HIGH-finding emails.
 
 **6. Create a login user:**
 

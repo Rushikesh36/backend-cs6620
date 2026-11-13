@@ -81,3 +81,8 @@ output "scanners" {
     }
   }
 }
+
+output "alerts_topic_arn" {
+  description = "SNS topic for new-HIGH-finding emails. The processor reads it as ALERTS_TOPIC_ARN."
+  value       = aws_sns_topic.alerts.arn
+}

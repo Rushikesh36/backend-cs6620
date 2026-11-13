@@ -16,8 +16,9 @@ module "authorizer" {
 }
 
 # Results processor: reads a finished scan's report, diffs and stores its findings, and moves the
-# job to COMPLETED or FAILED. Its only trigger is the EventBridge rule for stopped ECS tasks, which
-# is added with the ECS cluster (Task 22). The one writer of the findings table.
+# job to COMPLETED or FAILED. Emails an alert (alerts.tf, Task 24) when a scan has new HIGH
+# findings. Its only trigger is the EventBridge rule for stopped ECS tasks (ecs.tf, Task 22).
+# The one writer of the findings table.
 module "processor" {
   source = "./modules/lambda"
 
@@ -31,8 +32,9 @@ module "processor" {
   timeout     = 60
 
   environment = {
-    JOBS_TABLE     = aws_dynamodb_table.jobs.name
-    FINDINGS_TABLE = aws_dynamodb_table.findings.name
-    REPORTS_BUCKET = data.aws_s3_bucket.reports.bucket
+    JOBS_TABLE       = aws_dynamodb_table.jobs.name
+    FINDINGS_TABLE   = aws_dynamodb_table.findings.name
+    REPORTS_BUCKET   = data.aws_s3_bucket.reports.bucket
+    ALERTS_TOPIC_ARN = aws_sns_topic.alerts.arn
   }
 }
