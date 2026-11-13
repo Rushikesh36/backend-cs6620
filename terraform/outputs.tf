@@ -1,4 +1,3 @@
-# More outputs (bucket names, website URL) are added together with their resources.
 
 output "resource_prefix" {
   description = "Prefix used in the names of all resources in this environment."
@@ -80,4 +79,9 @@ output "scanners" {
       }
     }
   }
+}
+
+output "frontend_website_url" {
+  description = "Address of the dashboard. It must equal allowed_origin, or the browser's CORS checks fail."
+  value       = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
 }
