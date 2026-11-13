@@ -36,3 +36,33 @@ module "processor" {
     REPORTS_BUCKET = data.aws_s3_bucket.reports.bucket
   }
 }
+
+# Launcher: reads the scan queue and starts one Fargate scanner task per job (docs/architecture.md 5.3).
+# Everything it needs comes from resources defined elsewhere, so no name is typed twice.
+module "launcher" {
+  source = "./modules/lambda"
+
+  function_name      = "${local.prefix}-launcher"
+  source_dir         = "${local.lambda_build_dir}/launcher"
+  role_arn           = var.lab_role_arn
+  runtime            = local.lambda_runtime
+  log_retention_days = var.log_retention_days
+  # Must stay below the scan queue's visibility timeout (60 s), or messages are delivered twice.
+  timeout = 30
+
+  environment = {
+    JOBS_TABLE        = aws_dynamodb_table.jobs.name
+    CLUSTER_ARN       = aws_ecs_cluster.scanners.arn
+    CONTAINER_NAME    = local.scanner_container_name
+    SUBNET_IDS        = join(",", aws_subnet.private[*].id)
+    SECURITY_GROUP_ID = aws_security_group.scanner.id
+    TASK_DEFINITIONS_JSON = jsonencode({
+      for type, task in local.scanner_tasks : type => {
+        family   = aws_ecs_task_definition.scanner[type].family
+        imageTag = regex(":([A-Za-z0-9_.-]+)$", task.image_uri)[0]
+      }
+    })
+    # The real URL of each allow-listed target. Only the launcher and the scanner see it.
+    TARGET_URLS_JSON = jsonencode({ "juice-shop" = var.juice_shop_url })
+  }
+}

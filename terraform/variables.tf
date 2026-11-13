@@ -181,3 +181,14 @@ variable "login_burst_limit" {
   type        = number
   default     = 5
 }
+
+variable "launcher_max_concurrency" {
+  description = "How many launcher invocations may run at once, so a burst of scans cannot start dozens of Fargate tasks. 2 to 1000."
+  type        = number
+  default     = 2
+
+  validation {
+    condition     = var.launcher_max_concurrency >= 2 && var.launcher_max_concurrency <= 1000
+    error_message = "launcher_max_concurrency must be between 2 and 1000."
+  }
+}

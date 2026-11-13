@@ -2,7 +2,7 @@
 
 Backend and AWS infrastructure for Unified Security Hub (CS6620 Cloud Computing, Northeastern University, Team 6). It holds the Lambda code, the shared helpers they use, and the Terraform that builds everything in an AWS Learner Lab. The dashboard's code lives in the separate frontend repo (`cs6620-frontend`) and is hosted separately.
 
-Progress and decisions are tracked in [TASKS.md](TASKS.md). Design notes are in [docs/](docs/): the tables in [data-model.md](docs/data-model.md), finding fingerprints and the scan diff in [fingerprints.md](docs/fingerprints.md), the scanner report parsers in [report-parsers.md](docs/report-parsers.md), and the scanner images in [scanners.md](docs/scanners.md).
+Progress, owners and decisions are tracked in [TASKS.md](TASKS.md) (each task has an Owner column). Design notes are in [docs/](docs/): the tables in [data-model.md](docs/data-model.md), finding fingerprints and the scan diff in [fingerprints.md](docs/fingerprints.md), the scanner report parsers in [report-parsers.md](docs/report-parsers.md), and the scanner images in [scanners.md](docs/scanners.md).
 
 ## Contents
 
@@ -35,7 +35,9 @@ Progress and decisions are tracked in [TASKS.md](TASKS.md). Design notes are in 
 | ECS cluster, Semgrep and ZAP task definitions, EventBridge rule that sends stopped tasks to the processor                                                    | `terraform/ecs.tf`, [docs/scanners.md](docs/scanners.md#on-ecs-task-22) |
 | Scanner images: Semgrep (SAST) and ZAP (DAST), offline, with zip-bomb limits and pinned versions                                                             | `scanners/`, [docs/scanners.md](docs/scanners.md)                       |
 | `add-user` script to create login users                                                                                                                      | `scripts/add_user.ts`                                                   |
-| Not yet: launcher, reaper, SNS alerts, `GET /scans`, test app in the VPC, alarms                                                                             | see [TASKS.md](TASKS.md)                                                |
+| Route `GET /scans`: the most recent scans across all projects, newest first, paged (Task 30, Rushikesh)                                                      | `lambdas/list-recent-scans`, `terraform/routes.tf`                      |
+| Launcher Lambda: reads the scan queue (SQS trigger, `launcher_max_concurrency`) and starts one Fargate scanner task per job (Task 20, Rushikesh)             | `lambdas/launcher`, `terraform/lambdas.tf`, `terraform/queue.tf`        |
+| Not yet: reaper, SNS alerts, test app in the VPC, alarms                                                                                                     | see [TASKS.md](TASKS.md)                                                |
 
 ## Repo layout
 
