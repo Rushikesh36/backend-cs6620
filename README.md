@@ -37,6 +37,8 @@ Progress, owners and decisions are tracked in [TASKS.md](TASKS.md) (each task ha
 | `add-user` script to create login users                                                                                                                      | `scripts/add_user.ts`                                                   |
 | Route `GET /scans`: the most recent scans across all projects, newest first, paged (Task 30, Rushikesh)                                                      | `lambdas/list-recent-scans`, `terraform/routes.tf`                      |
 | Launcher Lambda: reads the scan queue (SQS trigger, `launcher_max_concurrency`) and starts one Fargate scanner task per job (Task 20, Rushikesh)             | `lambdas/launcher`, `terraform/lambdas.tf`, `terraform/queue.tf`        |
+| Dashboard bucket: website settings, public read and `config.json` with the API address (Task 25, Rushikesh)                                                  | `terraform/frontend.tf`                                                 |
+| GitHub Actions CI: format, lint, typecheck, tests, `terraform fmt` and `validate`                                                                            | `.github/workflows/ci.yml`                                              |
 | Not yet: reaper, SNS alerts, test app in the VPC, alarms                                                                                                     | see [TASKS.md](TASKS.md)                                                |
 
 ## Repo layout
@@ -103,7 +105,7 @@ aws iam get-role --role-name LabRole --query Role.Arn --output text
 ```
 
 - `environment` and `name_prefix`: your name, for example `shreya` and `shreya-sh`. The prefix starts every resource name.
-- `frontend_bucket_name`: the S3 bucket the dashboard is hosted in.
+- `frontend_bucket_name`: the S3 bucket the dashboard is hosted in. It must already exist (the frontend team creates it). Terraform turns on website hosting, makes it publicly readable and writes `config.json` (`apiBaseUrl`, `environment`) into it. The output `frontend_website_url` is the dashboard's address and must equal `allowed_origin`.
 - `allowed_origin`: the dashboard's address, `http://<frontend_bucket_name>.s3-website-us-east-1.amazonaws.com`. The API and the uploads bucket allow browser requests from this address only (CORS). To use the dashboard on your laptop instead, set it to `http://localhost:3000`.
 - There is no VPC to look up: Terraform creates a dedicated one (`network.tf`). `vpc_cidr` and `az_count` have defaults and can be left out.
 - Scanner images, `alert_email` and `juice_shop_url` can stay as placeholders until their tasks are built.
