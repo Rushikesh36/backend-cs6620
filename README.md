@@ -2,7 +2,7 @@
 
 Backend and AWS infrastructure for Unified Security Hub (CS6620 Cloud Computing, Northeastern University, Team 6). It holds the Lambda code, the shared helpers they use, and the Terraform that builds everything in an AWS Learner Lab. The dashboard's code lives in the separate frontend repo (`cs6620-frontend`) and is hosted separately.
 
-Progress and decisions are tracked in [TASKS.md](TASKS.md). Design notes are in [docs/](docs/): the tables in [data-model.md](docs/data-model.md), finding fingerprints and the scan diff in [fingerprints.md](docs/fingerprints.md), the scanner report parsers in [report-parsers.md](docs/report-parsers.md), and the scanner images in [scanners.md](docs/scanners.md).
+Progress, owners and decisions are tracked in [TASKS.md](TASKS.md) (each task has an Owner column). Design notes are in [docs/](docs/): the tables in [data-model.md](docs/data-model.md), finding fingerprints and the scan diff in [fingerprints.md](docs/fingerprints.md), the scanner report parsers in [report-parsers.md](docs/report-parsers.md), and the scanner images in [scanners.md](docs/scanners.md).
 
 ## Contents
 
@@ -35,8 +35,12 @@ Progress and decisions are tracked in [TASKS.md](TASKS.md). Design notes are in 
 | ECS cluster, Semgrep and ZAP task definitions, EventBridge rule that sends stopped tasks to the processor                                                    | `terraform/ecs.tf`, [docs/scanners.md](docs/scanners.md#on-ecs-task-22) |
 | Scanner images: Semgrep (SAST) and ZAP (DAST), offline, with zip-bomb limits and pinned versions                                                             | `scanners/`, [docs/scanners.md](docs/scanners.md)                       |
 | `add-user` script to create login users                                                                                                                      | `scripts/add_user.ts`                                                   |
+| Route `GET /scans`: the most recent scans across all projects, newest first, paged (Task 30, Rushikesh)                                                      | `lambdas/list-recent-scans`, `terraform/routes.tf`                      |
+| Launcher Lambda: reads the scan queue (SQS trigger, `launcher_max_concurrency`) and starts one Fargate scanner task per job (Task 20, Rushikesh)             | `lambdas/launcher`, `terraform/lambdas.tf`, `terraform/queue.tf`        |
+| Dashboard bucket: website settings, public read and `config.json` with the API address (Task 25, Rushikesh)                                                  | `terraform/frontend.tf`                                                 |
+| GitHub Actions CI: format, lint, typecheck, tests, `terraform fmt` and `validate`                                                                            | `.github/workflows/ci.yml`                                              |
 | Email alert (SNS) when a scan finds new HIGH findings, sent by the processor                                                                                 | `terraform/alerts.tf`, `lambdas/processor/alert.ts`                     |
-| Not yet: launcher, reaper, `GET /scans`, test app in the VPC, alarms                                                                                         | see [TASKS.md](TASKS.md)                                                |
+| Not yet: reaper, test app in the VPC, alarms                                                                                                                 | see [TASKS.md](TASKS.md)                                                |
 
 ## Repo layout
 
@@ -102,7 +106,7 @@ aws iam get-role --role-name LabRole --query Role.Arn --output text
 ```
 
 - `environment` and `name_prefix`: your name, for example `shreya` and `shreya-sh`. The prefix starts every resource name.
-- `frontend_bucket_name`: the S3 bucket the dashboard is hosted in.
+- `frontend_bucket_name`: the S3 bucket the dashboard is hosted in. It must already exist (the frontend team creates it). Terraform turns on website hosting, makes it publicly readable and writes `config.json` (`apiBaseUrl`, `environment`) into it. The output `frontend_website_url` is the dashboard's address and must equal `allowed_origin`.
 - `allowed_origin`: the dashboard's address, `http://<frontend_bucket_name>.s3-website-us-east-1.amazonaws.com`. The API and the uploads bucket allow browser requests from this address only (CORS). To use the dashboard on your laptop instead, set it to `http://localhost:3000`.
 - There is no VPC to look up: Terraform creates a dedicated one (`network.tf`). `vpc_cidr` and `az_count` have defaults and can be left out.
 - `alert_email`: where the new-HIGH-finding emails go. After the first `apply`, AWS sends this address a "Subscription Confirmation" email; click the link in it, or no alert arrives.
