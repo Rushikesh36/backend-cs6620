@@ -1,0 +1,11 @@
+{
+  "$id": "scan-list-response.json",
+  "title": "GET /projects/{projectId}/scans and GET /scans 200",
+  "type": "object",
+  "required": ["items", "nextCursor"],
+  "additionalProperties": false,
+  "properties": {
+    "items": { "type": "array", "items": { "$ref": "scan-item.json" } },
+    "nextCursor": { "type": ["string", "null"], "minLength": 1 }
+  }
+}

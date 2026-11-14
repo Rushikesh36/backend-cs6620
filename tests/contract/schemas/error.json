@@ -1,0 +1,8 @@
+{
+  "$id": "error.json",
+  "title": "Every error body: { error }",
+  "type": "object",
+  "required": ["error"],
+  "additionalProperties": false,
+  "properties": { "error": { "type": "string", "minLength": 1 } }
+}

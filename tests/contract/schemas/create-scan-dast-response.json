@@ -1,0 +1,14 @@
+{
+  "$id": "create-scan-dast-response.json",
+  "title": "POST /scans 200 (DAST): no upload key at all",
+  "type": "object",
+  "required": ["jobId", "status"],
+  "additionalProperties": false,
+  "properties": {
+    "jobId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "status": { "const": "CREATED" }
+  }
+}
