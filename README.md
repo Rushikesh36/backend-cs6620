@@ -40,7 +40,9 @@ Progress, owners and decisions are tracked in [TASKS.md](TASKS.md) (each task ha
 | Dashboard bucket: website settings, public read and `config.json` with the API address (Task 25, Rushikesh)                                                  | `terraform/frontend.tf`                                                 |
 | GitHub Actions CI: format, lint, typecheck, tests, `terraform fmt` and `validate`                                                                            | `.github/workflows/ci.yml`                                              |
 | Email alert (SNS) when a scan finds new HIGH findings, sent by the processor                                                                                 | `terraform/alerts.tf`, `lambdas/processor/alert.ts`                     |
-| Not yet: reaper, test app in the VPC, alarms                                                                                                                 | see [TASKS.md](TASKS.md)                                                |
+| Alarms to the alerts topic: scan queue age, dead-letter queue not empty, scanner task failed (Task 32, Rushikesh)                                            | `terraform/alarms.tf`                                                   |
+| Alarms to the alerts topic: scan queue age, dead-letter queue not empty, scanner task failed (Task 32, Rushikesh)                                            | `terraform/alarms.tf`                                                   |
+| Not yet: reaper, test app in the VPC                                                                                                                         | see [TASKS.md](TASKS.md)                                                |
 
 ## Repo layout
 

@@ -203,3 +203,14 @@ variable "launcher_max_concurrency" {
     error_message = "launcher_max_concurrency must be between 2 and 1000."
   }
 }
+
+variable "queue_age_alarm_seconds" {
+  description = "Alarm when the oldest scan has waited this long in the scan queue. The launcher normally takes seconds, so the default is generous."
+  type        = number
+  default     = 300
+
+  validation {
+    condition     = var.queue_age_alarm_seconds >= 60 && var.queue_age_alarm_seconds <= 3600
+    error_message = "queue_age_alarm_seconds must be between 60 and 3600."
+  }
+}
