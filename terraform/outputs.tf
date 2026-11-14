@@ -85,3 +85,8 @@ output "frontend_website_url" {
   description = "Address of the dashboard. It must equal allowed_origin, or the browser's CORS checks fail."
   value       = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
 }
+
+output "alerts_topic_arn" {
+  description = "SNS topic for new-HIGH-finding emails. The processor reads it as ALERTS_TOPIC_ARN."
+  value       = aws_sns_topic.alerts.arn
+}

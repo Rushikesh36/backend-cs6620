@@ -136,6 +136,8 @@ The task definitions reuse what already exists: LabRole as both the execution ro
 
 The processor tolerates repeated events, so the rule's target retries (up to 10 times, for at most an hour). A job whose event never arrives is left to the reaper (Task 23).
 
+**Right after an apply:** newly created VPC endpoints can take a few minutes before tasks reach them. In testing, a task started under two minutes after the endpoints were created failed with `CannotPullContainerError ... i/o timeout`, and the same task worked a few minutes later. The processor marks such a job FAILED "Could not start scanner task", so wait a few minutes after creating the endpoints before the first scan.
+
 ## For the launcher (Task 20)
 
 Everything the launcher needs is in one Terraform output, `scanners`, so its Lambda's environment can be filled from it instead of repeating names:

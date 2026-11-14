@@ -120,6 +120,17 @@ variable "alert_email" {
   }
 }
 
+variable "extra_alert_emails" {
+  description = "More addresses that receive the same alerts as alert_email, for example the rest of the team. Each must confirm its subscription."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for e in var.extra_alert_emails : can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", e))])
+    error_message = "Every extra_alert_emails entry must be a valid email address."
+  }
+}
+
 variable "token_lifetime_seconds" {
   description = "How long a login token lives. The API returns this as expiresIn."
   type        = number
