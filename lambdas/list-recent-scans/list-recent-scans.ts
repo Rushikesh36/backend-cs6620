@@ -55,7 +55,9 @@ export function queryRecentScans(
       new QueryCommand({
         TableName: table,
         IndexName: "byCreated",
-        KeyConditionExpression: "scope = :s",
+        // `scope` is a reserved word in DynamoDB, so the name must go through a placeholder.
+        KeyConditionExpression: "#scope = :s",
+        ExpressionAttributeNames: { "#scope": "scope" },
         ExpressionAttributeValues: { ":s": SCOPE },
         ScanIndexForward: false,
         Limit: limit,
