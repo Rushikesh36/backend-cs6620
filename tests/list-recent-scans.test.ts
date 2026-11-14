@@ -161,7 +161,9 @@ describe("GET /scans handler", () => {
     expect(ddb.commandCalls(QueryCommand)[0]?.args[0].input).toEqual({
       TableName: "jobs",
       IndexName: "byCreated",
-      KeyConditionExpression: "scope = :s",
+      // "scope" is a reserved word in DynamoDB: written bare, real DynamoDB rejects the query.
+      KeyConditionExpression: "#scope = :s",
+      ExpressionAttributeNames: { "#scope": "scope" },
       ExpressionAttributeValues: { ":s": "ALL" },
       ScanIndexForward: false,
       Limit: 5,
