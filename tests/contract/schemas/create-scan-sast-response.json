@@ -1,0 +1,30 @@
+{
+  "$id": "create-scan-sast-response.json",
+  "title": "POST /scans 200 (SAST): includes the pre-signed upload",
+  "type": "object",
+  "required": ["jobId", "status", "upload"],
+  "additionalProperties": false,
+  "properties": {
+    "jobId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "status": { "const": "CREATED" },
+    "upload": {
+      "type": "object",
+      "required": ["url", "method", "headers", "expiresIn"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "format": "uri", "pattern": "^https?://" },
+        "method": { "const": "PUT" },
+        "headers": {
+          "type": "object",
+          "required": ["Content-Type"],
+          "additionalProperties": false,
+          "properties": { "Content-Type": { "const": "application/zip" } }
+        },
+        "expiresIn": { "const": 900 }
+      }
+    }
+  }
+}

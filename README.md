@@ -193,11 +193,28 @@ npm run check           # format check, lint, type check and tests
 npm run build           # bundle each lambdas/<name>/handler.ts for Terraform
 npm run add-user -- --username <name> --role user --table <users table>
 scripts/manage_buckets.sh create <prefix>        # create the uploads and reports buckets (delete: same, with `delete`)
+scripts/smoke.sh <api_base_url> <username>        # call every endpoint of a deployed API and check the responses (README: Smoke test)
 scripts/build_scanner_images.sh                  # build the scanner images to test locally
 scripts/build_scanner_images.sh --push <prefix>  # build for Fargate and push to ECR in your lab
 ```
 
 The scanner images, how to test them on a laptop with no AWS, and the settings the launcher passes them are in [docs/scanners.md](docs/scanners.md).
+
+## Smoke test
+
+After a deploy, check that every endpoint answers in the shape the frontend expects. The script makes a real scan in a project called `smoke-test`: it logs in, creates a SAST scan, uploads a tiny empty zip to the pre-signed URL, starts the scan, then calls every endpoint and checks each response against the JSON Schemas in `tests/contract/schemas/`. It also checks the error cases (wrong password, bad token, bad input, starting twice, unknown scan). Use your own lab, with a user made by `npm run add-user`:
+
+```bash
+scripts/smoke.sh "$(terraform -chdir=terraform output -raw api_base_url)" <username>
+```
+
+It asks for the password with a hidden prompt (or reads `SMOKE_PASSWORD`; never put the password on the command line). The token and the upload link are never printed. It needs `curl` and `node` only. Each line says `PASS` or `FAIL`, and the script exits with 1 if anything failed.
+
+- `--wait` also waits (up to 15 minutes) for the scanner to finish the scan, then checks its findings.
+- `--dast` also creates (but does not start) a DAST scan for the first target.
+- `--project <id>` uses another project name.
+
+The same schemas run in `npm run check` against the real handlers (`tests/contract.test.ts`), so a handler that leaks a field or changes a shape fails the build before anyone deploys.
 
 ## Tearing down
 

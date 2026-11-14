@@ -1,0 +1,22 @@
+{
+  "$id": "targets-response.json",
+  "title": "GET /targets 200 (never a URL)",
+  "type": "object",
+  "required": ["targets"],
+  "additionalProperties": false,
+  "properties": {
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["targetId", "name", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "targetId": { "type": "string", "pattern": "^[a-z0-9-]{1,50}$" },
+          "name": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    }
+  }
+}

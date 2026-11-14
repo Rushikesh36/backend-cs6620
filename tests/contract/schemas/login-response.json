@@ -1,0 +1,20 @@
+{
+  "$id": "login-response.json",
+  "title": "POST /login 200",
+  "type": "object",
+  "required": ["token", "expiresIn", "user"],
+  "additionalProperties": false,
+  "properties": {
+    "token": { "type": "string", "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$" },
+    "expiresIn": { "type": "integer", "minimum": 1 },
+    "user": {
+      "type": "object",
+      "required": ["username", "role"],
+      "additionalProperties": false,
+      "properties": {
+        "username": { "type": "string", "minLength": 1 },
+        "role": { "enum": ["user", "ci"] }
+      }
+    }
+  }
+}

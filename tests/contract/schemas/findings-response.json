@@ -1,0 +1,36 @@
+{
+  "$id": "findings-response.json",
+  "title": "GET /projects/{projectId}/findings 200",
+  "type": "object",
+  "required": ["items"],
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "fingerprint",
+          "ruleId",
+          "severity",
+          "location",
+          "message",
+          "state",
+          "firstSeenJobId",
+          "lastSeenJobId"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "fingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "ruleId": { "type": "string", "minLength": 1 },
+          "severity": { "enum": ["HIGH", "MEDIUM", "LOW", "INFO"] },
+          "location": { "type": "string", "minLength": 1 },
+          "message": { "type": "string" },
+          "state": { "enum": ["OPEN", "FIXED"] },
+          "firstSeenJobId": { "type": "string", "minLength": 1 },
+          "lastSeenJobId": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

@@ -31,6 +31,8 @@
     "@types/aws-lambda": "^8.10.145",
     "@types/node": "^22.10.0",
     "@types/yauzl": "^3.4.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "aws-sdk-client-mock": "^4.1.0",
     "esbuild": "^0.24.0",
     "eslint": "^9.15.0",
