@@ -138,6 +138,28 @@ The processor tolerates repeated events, so the rule's target retries (up to 10 
 
 **Right after an apply:** newly created VPC endpoints can take a few minutes before tasks reach them. In testing, a task started under two minutes after the endpoints were created failed with `CannotPullContainerError ... i/o timeout`, and the same task worked a few minutes later. The processor marks such a job FAILED "Could not start scanner task", so wait a few minutes after creating the endpoints before the first scan.
 
+## DAST test app (Task 31)
+
+ZAP scans OWASP Juice Shop, which runs as a second container, `juice-shop`, in every ZAP task (`terraform/ecs.tf`). Containers in one Fargate task share `localhost`, so ZAP reaches it at `http://localhost:3000` (`juice_shop_url`). The app starts and stops with the scan: nothing runs or costs anything between scans, and there is no address to look up.
+
+Why not a separate ECS service: Fargate gives each task a new private IP, and Learner Lab does not allow Cloud Map (private DNS names), so a separate service would have no stable address.
+
+| Part                   | What it is                                                                                                             |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `<prefix>-juice-shop`  | ECR repository, filled by `scripts/mirror_test_app.sh <prefix>` with `JUICE_SHOP_VERSION` from `versions.env` (19.0.0) |
+| `juice-shop` container | In the `<prefix>-zap` task definition; `PORT = test_app_port`; not essential; 10 s `stopTimeout`                       |
+| Health check           | A Node.js request to the home page every 10 s (60 s start period); the image has no shell or curl                      |
+| `dependsOn`            | The `scanner` container starts only once Juice Shop is HEALTHY                                                         |
+| Logs                   | The ZAP log group `/ecs/<prefix>-zap`, stream `app/juice-shop/<taskId>`                                                |
+
+When ZAP exits, ECS stops Juice Shop, which exits with code 0, so the processor and the failed-task email see only ZAP's exit code. If Juice Shop crashes, ZAP still finishes, with exit code 6 if the app never answered.
+
+Set-up, once per lab:
+
+1. `scripts/mirror_test_app.sh <prefix>` (needs Docker; the private subnets cannot reach Docker Hub).
+2. In your tfvars: the printed `test_app_image_uri`, and `juice_shop_url = "http://localhost:3000"`.
+3. Apply. Without `test_app_image_uri`, the ZAP task has no Juice Shop and DAST scans fail with exit code 6.
+
 ## For the launcher (Task 20)
 
 Everything the launcher needs is in one Terraform output, `scanners`, so its Lambda's environment can be filled from it instead of repeating names:

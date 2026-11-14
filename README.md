@@ -42,7 +42,8 @@ Progress, owners and decisions are tracked in [TASKS.md](TASKS.md) (each task ha
 | Email alert (SNS) when a scan finds new HIGH findings, sent by the processor                                                                                 | `terraform/alerts.tf`, `lambdas/processor/alert.ts`                     |
 | Alarms to the alerts topic: scan queue age, dead-letter queue not empty, scanner task failed (Task 32, Rushikesh)                                            | `terraform/alarms.tf`                                                   |
 | Alarms to the alerts topic: scan queue age, dead-letter queue not empty, scanner task failed (Task 32, Rushikesh)                                            | `terraform/alarms.tf`                                                   |
-| Not yet: reaper, test app in the VPC                                                                                                                         | see [TASKS.md](TASKS.md)                                                |
+| DAST test app: OWASP Juice Shop runs as a second container in every ZAP task (ZAP scans localhost), image copied into ECR                                    | `terraform/ecs.tf`, `scripts/mirror_test_app.sh`                        |
+| Not yet: reaper                                                                                                                                              | see [TASKS.md](TASKS.md)                                                |
 
 ## Repo layout
 
@@ -113,7 +114,8 @@ aws iam get-role --role-name LabRole --query Role.Arn --output text
 - There is no VPC to look up: Terraform creates a dedicated one (`network.tf`). `vpc_cidr` and `az_count` have defaults and can be left out.
 - `alert_email`: where the new-HIGH-finding emails go. After the first `apply`, AWS sends this address a "Subscription Confirmation" email; click the link in it, or no alert arrives. To send the alerts to the rest of the team too, list their addresses in `extra_alert_emails`; each of them gets the same confirmation email.
 - `semgrep_image_uri` and `zap_image_uri`: printed by `scripts/build_scanner_images.sh --push <name_prefix>` (see [docs/scanners.md](docs/scanners.md)).
-- `juice_shop_url` can stay a placeholder until the test app is built (Task 31).
+- `juice_shop_url`: `http://localhost:3000`. The DAST test app, OWASP Juice Shop, runs next to ZAP inside every DAST task, so ZAP reaches it on localhost.
+- `test_app_image_uri`: printed by `scripts/mirror_test_app.sh <name_prefix>`, which copies Juice Shop into ECR (the private subnets cannot reach Docker Hub). See [docs/scanners.md](docs/scanners.md#dast-test-app-task-31).
 
 **2. Create the JWT signing secret** (once per lab). Login signs its tokens with a secret kept in SSM Parameter Store, never in Terraform, so it stays out of the state file. The name must match `jwt_secret_ssm_name` (default `/security-hub/jwt-secret`). The script generates a random 48-byte secret and stores it straight in SSM. It is never printed. It refuses to replace an existing secret unless you pass `--rotate` (which signs every user out):
 

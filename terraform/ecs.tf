@@ -40,6 +40,45 @@ locals {
   }
 }
 
+# DAST test app (Task 31): OWASP Juice Shop runs as a second container in every ZAP task, so ZAP
+# scans it at http://localhost:<test_app_port> (set juice_shop_url to that). It starts and stops
+# with the scan: nothing runs or costs anything between scans, and no address has to be looked
+# up (Learner Lab does not allow Cloud Map). The image is copied into ECR by
+# scripts/mirror_test_app.sh, because the private subnets cannot reach Docker Hub.
+# Juice Shop exits with code 0 when ECS stops it after the scan, so neither the processor nor the
+# failed-task email (alarms.tf) sees a failure. Not essential: if it crashes, ZAP still finishes
+# and reports (exit code 6 if the app never answered).
+locals {
+  test_app_enabled        = var.test_app_image_uri != null
+  test_app_container_name = "juice-shop"
+
+  test_app_containers = local.test_app_enabled ? [{
+    name        = local.test_app_container_name
+    image       = var.test_app_image_uri
+    essential   = false
+    stopTimeout = 10
+    # Juice Shop writes its SQLite database at start-up, so the root file system stays writable.
+    environment = [{ name = "PORT", value = tostring(var.test_app_port) }]
+    # The image has no shell or curl, only Node.js: ask the app for its home page.
+    healthCheck = {
+      command = ["CMD", "/nodejs/bin/node", "-e",
+      "require('http').get('http://127.0.0.1:${var.test_app_port}/',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval    = 10
+      timeout     = 5
+      retries     = 3
+      startPeriod = 60
+    }
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        awslogs-group         = aws_cloudwatch_log_group.scanner["DAST"].name
+        awslogs-region        = var.region
+        awslogs-stream-prefix = "app"
+      }
+    }
+  }] : []
+}
+
 resource "aws_ecs_cluster" "scanners" {
   name = "${local.prefix}-scanners"
 
@@ -75,8 +114,8 @@ resource "aws_ecs_task_definition" "scanner" {
     cpu_architecture        = "X86_64"
   }
 
-  container_definitions = jsonencode([
-    {
+  container_definitions = jsonencode(concat([
+    merge({
       name      = local.scanner_container_name
       image     = each.value.image_uri
       essential = true
@@ -94,15 +133,20 @@ resource "aws_ecs_task_definition" "scanner" {
           awslogs-stream-prefix = "scan"
         }
       }
-    }
-  ])
+      },
+      # DAST with the test app: ZAP starts only once Juice Shop answers.
+      { for k, v in { dependsOn = [{ containerName = local.test_app_container_name, condition = "HEALTHY" }] } :
+      k => v if each.key == "DAST" && local.test_app_enabled }
+    )],
+    each.key == "DAST" ? local.test_app_containers : []
+  ))
 
   tags = { Name = each.value.family }
 }
 
 # ---------- Task stopped -> processor ----------
 # The processor's only trigger (architecture 5.5). It reads the job ID from startedBy and ignores
-# tasks that no launcher started (for example the test app's service in Task 31).
+# tasks that no launcher started.
 
 resource "aws_cloudwatch_event_rule" "scanner_task_stopped" {
   name        = "${local.prefix}-scanner-task-stopped"

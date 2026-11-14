@@ -17,9 +17,12 @@ az_count = 2
 # Printed by scripts/build_scanner_images.sh --push <name_prefix> (docs/scanners.md).
 semgrep_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/yourname-sh-semgrep:1.183.0-1"
 zap_image_uri     = "123456789012.dkr.ecr.us-east-1.amazonaws.com/yourname-sh-zap:2.17.0-1"
+# DAST test app (Task 31): printed by scripts/mirror_test_app.sh <name_prefix>. It runs inside
+# every ZAP task, so juice_shop_url below is http://localhost:3000.
+test_app_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/yourname-sh-juice-shop:19.0.0"
 
 alert_email            = "you@example.com"
 # Optional: more addresses for the same alerts. Each gets its own confirmation email.
 # extra_alert_emails = ["teammate@example.com"]
 token_lifetime_seconds = 3600
-juice_shop_url         = "http://juice-shop.internal:3000"
+juice_shop_url         = "http://localhost:3000"

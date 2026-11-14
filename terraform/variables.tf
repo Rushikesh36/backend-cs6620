@@ -110,6 +110,17 @@ variable "zap_image_uri" {
   }
 }
 
+variable "test_app_image_uri" {
+  description = "ECR image URI (with a pinned tag, never :latest) of the DAST test app, printed by scripts/mirror_test_app.sh. It runs next to ZAP in every DAST task. Leave it out and DAST scans have no target (they fail with exit code 6)."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.test_app_image_uri == null ? true : (!endswith(var.test_app_image_uri, ":latest") && can(regex(":[A-Za-z0-9_.-]+$", var.test_app_image_uri)))
+    error_message = "test_app_image_uri must include a pinned tag and must not use :latest."
+  }
+}
+
 variable "alert_email" {
   description = "Email address that receives alerts for new HIGH findings."
   type        = string
