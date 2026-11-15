@@ -14,9 +14,11 @@ resource "aws_s3_bucket_website_configuration" "frontend" {
     suffix = "index.html"
   }
 
-  # The site is a single-page app, so unknown paths load the app, which shows its own 404.
+  # The frontend is a static export that builds its own not-found page as 404.html. Unknown paths
+  # must show that page. Do not point this at index.html or add a rule that turns a 404 into a 200:
+  # the frontend's tests and its not-found page expect a real "not found".
   error_document {
-    key = "index.html"
+    key = "404.html"
   }
 }
 
