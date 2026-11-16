@@ -22,4 +22,6 @@ alert_email            = "you@example.com"
 # Optional: more addresses for the same alerts. Each gets its own confirmation email.
 # extra_alert_emails = ["teammate@example.com"]
 token_lifetime_seconds = 3600
+# Optional: other places the dashboard is hosted (for example a Vercel site), or a laptop.
+# extra_allowed_origins = ["https://my-site.vercel.app", "http://localhost:3000"]
 juice_shop_url         = "http://juice-shop.internal:3000"

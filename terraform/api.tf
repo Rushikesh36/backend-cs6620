@@ -8,7 +8,7 @@ resource "aws_apigatewayv2_api" "api" {
   # The browser sends an OPTIONS preflight because of the Authorization header.
   # API Gateway answers it itself. Exactly one origin, never "*", and no cookies/credentials.
   cors_configuration {
-    allow_origins     = [var.allowed_origin]
+    allow_origins     = local.allowed_origins
     allow_methods     = ["GET", "POST", "OPTIONS"]
     allow_headers     = ["Authorization", "Content-Type"]
     allow_credentials = false

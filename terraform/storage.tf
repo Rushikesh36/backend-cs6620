@@ -60,12 +60,12 @@ resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
 }
 
 # The browser uploads straight to S3, so S3 needs its own CORS rule.
-# Only PUT, only from the frontend origin.
+# Only PUT, only from the frontend origins.
 resource "aws_s3_bucket_cors_configuration" "uploads" {
   bucket = data.aws_s3_bucket.uploads.id
 
   cors_rule {
-    allowed_origins = [var.allowed_origin]
+    allowed_origins = local.allowed_origins
     allowed_methods = ["PUT"]
     allowed_headers = ["Content-Type"]
     expose_headers  = ["ETag"]

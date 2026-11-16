@@ -90,6 +90,8 @@ Statuses: Not started / In progress / In review / Changes requested / Approved /
 - A token the authorizer denies gets HTTP 403 from API Gateway, not 401 (found by `scripts/smoke.sh` on the first real deploy, 2026-11-15; only a missing header is 401). Decision: the dashboard logs the user out on 401 or 403, and no handler uses 403 for anything else (`requireRole` exists but no Lambda calls it). The smoke script accepts either.
 - Scanners run fully offline inside the private subnets. (Confirmed for Semgrep in one lab on 2026-11-12, Task 22; ZAP checked offline on a laptop, Task 21.)
 
+- Extra CORS origins (2026-11-15): `extra_allowed_origins` is allowed next to `allowed_origin` on the API and the uploads bucket, so the dashboard can also be hosted on Vercel/Netlify (HTTPS). CloudFront was tried in Rushikesh's lab and refused: `cloudfront:CreateDistribution` and `cloudfront:ListCachePolicies` are AccessDenied for the voclabs role.
+
 ## Open questions
 
 0. **Needs your decision (Task 9):** an API Gateway HTTP API answers an authorizer denial (and a missing Authorization header) with its own body `{"message":"Unauthorized"}`, not `{"error":"..."}`. HTTP APIs cannot change this. The status is 401 for a missing header and 403 for a denied token. Does the frontend only look at the status code for 401, or also at the body? If it needs `{error}`, the alternative is to check the token inside every Lambda instead of using a gateway authorizer.
