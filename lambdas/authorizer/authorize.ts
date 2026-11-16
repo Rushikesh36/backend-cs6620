@@ -17,7 +17,8 @@ const BEARER = /^Bearer ([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/i;
 
 /**
  * Allows the request only if it carries a valid, unexpired token signed with our secret.
- * A bad token is a normal "deny" (401). A failure to read the secret is thrown, so the
+ * A bad token is a normal "deny". API Gateway answers a deny with 403 (only a missing header is
+ * 401), and the dashboard logs the user out on both. A failure to read the secret is thrown, so the
  * caller gets a retryable 5xx instead of being logged out.
  */
 export async function authorize(

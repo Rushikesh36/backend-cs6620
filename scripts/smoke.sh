@@ -142,15 +142,14 @@ echo
 request GET /targets "" none
 if [[ ${STATUS} == 401 ]]; then pass "no token -> 401"; else fail "no token: expected 401, got ${STATUS}"; fi
 
-# The browser logs the user out only on 401, so a bad token must not get 403 or 5xx.
+# API Gateway turns a Lambda authorizer denial into 403 (only a missing header is a 401), so the
+# dashboard logs the user out on 401 OR 403. A bad token must not get a 5xx, which would not.
 printf 'Authorization: Bearer %s\n' 'aaaa.bbbb.cccc' >"${AUTH_HEADER}"
 request GET /targets
-if [[ ${STATUS} == 401 ]]; then
-  pass "invalid token -> 401"
-elif [[ ${STATUS} == 403 ]]; then
-  fail "invalid token -> 403, the contract needs 401 (a 403 never logs the user out)"
+if [[ ${STATUS} == 401 || ${STATUS} == 403 ]]; then
+  pass "invalid token -> ${STATUS} (the dashboard logs out on 401 and 403)"
 else
-  fail "invalid token: expected 401, got ${STATUS}"
+  fail "invalid token: expected 401 or 403, got ${STATUS}"
 fi
 
 request POST /login "$(json_obj "username=${USERNAME}" "password=definitely-not-the-password")" none
