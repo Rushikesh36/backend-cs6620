@@ -48,12 +48,23 @@ variable "frontend_bucket_name" {
 }
 
 variable "allowed_origin" {
-  description = "Frontend website URL, used as the only allowed CORS origin. No trailing slash. Never '*'."
+  description = "Frontend website URL (the S3 website address), an allowed CORS origin. No trailing slash. Never '*'."
   type        = string
 
   validation {
     condition     = can(regex("^https?://[^/*]+$", var.allowed_origin))
     error_message = "allowed_origin must be like http://bucket.s3-website-us-east-1.amazonaws.com (no trailing slash, no wildcard)."
+  }
+}
+
+variable "extra_allowed_origins" {
+  description = "More browser origins allowed by CORS next to allowed_origin, for example the https address of a Vercel or Netlify site, or http://localhost:3000. No trailing slash, never '*'."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for o in var.extra_allowed_origins : can(regex("^https?://[^/*]+$", o))])
+    error_message = "Each extra origin must be like https://site.vercel.app (no trailing slash, no wildcard)."
   }
 }
 
