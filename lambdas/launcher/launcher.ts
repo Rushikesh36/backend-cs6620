@@ -70,6 +70,7 @@ export async function launchScan(
   deps: LaunchDeps,
 ): Promise<LaunchOutcome> {
   const now = deps.now ?? (() => new Date());
+  logger.info("Scan message received", { jobId, receivedFrom: "SQS scan queue" });
   const job = await deps.getJob(jobId);
   if (!job) {
     logger.warn("Scan message for an unknown job, dropping it", { jobId });
@@ -115,7 +116,16 @@ export async function launchScan(
     // The task runs and the processor finds the job through startedBy, so this is not fatal.
     logger.warn("Could not save the task ARN", { jobId, taskArn, error: err });
   }
-  logger.info("Scanner task started", { jobId, scanType: job.scanType });
+  logger.info("Scanner task started", {
+    jobId,
+    scanType: job.scanType,
+    startedService: "ECS Fargate",
+    taskArn,
+    cluster: config.clusterArn,
+    taskDefinition: type.family,
+    container: config.containerName,
+    imageTag: type.imageTag,
+  });
   return { outcome: "launched", taskArn };
 }
 

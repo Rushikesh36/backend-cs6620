@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { badRequest, conflict, forbidden, notFound, unauthorized } from "../common/errors.js";
 import { json, toErrorResponse, wrap } from "../common/http.js";
-import { logger, redact } from "../common/logger.js";
+import { logger, redact, setLogContext } from "../common/logger.js";
 import {
   parseJsonObject,
   parseLimit,
@@ -169,6 +169,41 @@ describe("logger", () => {
       message: "hello",
       jobId: "j1",
       password: "[redacted]",
+    });
+  });
+
+  describe("source of the line", () => {
+    function logOnce(): Record<string, unknown> {
+      vi.stubEnv("LOG_LEVEL", "info");
+      const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+      logger.info("hello", { jobId: "j1" });
+      return JSON.parse(String(write.mock.calls[0]?.[0])) as Record<string, unknown>;
+    }
+
+    afterEach(() => {
+      setLogContext({});
+      vi.unstubAllEnvs();
+      vi.restoreAllMocks();
+    });
+
+    it("names the Lambda that wrote the line", () => {
+      vi.stubEnv("AWS_LAMBDA_FUNCTION_NAME", "rushikesh-sh-launcher");
+      expect(logOnce()).toMatchObject({ awsService: "Lambda", function: "rushikesh-sh-launcher" });
+    });
+
+    it("names the container from setLogContext", () => {
+      setLogContext({ awsService: "ECS Fargate", container: "scanner", scanner: "semgrep" });
+      expect(logOnce()).toMatchObject({
+        awsService: "ECS Fargate",
+        container: "scanner",
+        scanner: "semgrep",
+        jobId: "j1",
+      });
+    });
+
+    it("adds nothing when running outside AWS", () => {
+      vi.stubEnv("AWS_LAMBDA_FUNCTION_NAME", "");
+      expect(logOnce()).not.toHaveProperty("awsService");
     });
   });
 });

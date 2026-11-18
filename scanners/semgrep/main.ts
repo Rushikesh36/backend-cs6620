@@ -2,10 +2,18 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { setLogContext } from "../../common/logger.js";
 import { deadline, runScanner } from "../common/job.js";
 import { runProcess, stopAll } from "../common/run.js";
 import { downloadToFile, scannerS3Client, uploadReport } from "../common/storage.js";
 import { readSastConfig, runSast } from "./semgrep.js";
+
+setLogContext({
+  awsService: "ECS Fargate",
+  container: "scanner",
+  scanner: "semgrep",
+  scanType: "SAST",
+});
 
 process.on("SIGTERM", () => {
   // ECS is stopping the task (the reaper, or a stop from the console): stop Semgrep too.

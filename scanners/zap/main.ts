@@ -1,8 +1,16 @@
 // Entry point of the ZAP (DAST) image. Settings come from the launcher (Task 20).
+import { setLogContext } from "../../common/logger.js";
 import { deadline, runScanner } from "../common/job.js";
 import { runProcess, stopAll } from "../common/run.js";
 import { scannerS3Client, uploadReport } from "../common/storage.js";
 import { readDastConfig, runDast, ZAP_WORK_DIR } from "./zap.js";
+
+setLogContext({
+  awsService: "ECS Fargate",
+  container: "scanner",
+  scanner: "zap",
+  scanType: "DAST",
+});
 
 process.on("SIGTERM", () => {
   // ECS is stopping the task (the reaper, or a stop from the console): stop ZAP too.
