@@ -1,8 +1,8 @@
 # TASKS: Unified Security Hub backend
 
-Progress: 28 / 32
+Progress: 30 / 32
 
-`[█████████████████████████░░░░] 88%`
+`[███████████████████████████░░] 94%`
 
 Statuses: Not started / In progress / In review / Changes requested / Approved / Blocked
 
@@ -30,10 +30,10 @@ Statuses: Not started / In progress / In review / Changes requested / Approved /
 | 20  | Launcher Lambda: SQS trigger with `maximum_concurrency` (no reserved concurrency); reads project and target from the job; conditional `QUEUED → RUNNING` (duplicate delivery is discarded); `ecs:RunTask` with `startedBy = jobId`; "Could not start scanner task" + tests | Approved    | 11, 13, 28     | Rushikesh   |
 | 21  | Scanner images (semgrep and zap Dockerfiles + wrapper scripts, zip-bomb limits, pinned tags)                                                                                                                                                                               | Approved    | 17             | Geethanjali |
 | 22  | Terraform: ECS cluster, task definitions (use the Task 28 subnets and security groups), EventBridge task-state rule                                                                                                                                                        | Approved    | 19, 20, 21, 28 | Geethanjali |
-| 23  | Reaper Lambda (stuck jobs, stops tasks) + schedule + tests                                                                                                                                                                                                                 | In review   | 22             | Shreya      |
+| 23  | Reaper Lambda (stuck jobs, stops tasks) + schedule + tests                                                                                                                                                                                                                 | Approved    | 22             | Shreya      |
 | 24  | Alerts (SNS email when newHigh >= 1) + tests                                                                                                                                                                                                                               | Approved    | 19             | Geethanjali |
 | 25  | Frontend bucket website settings + `config.json` object from Terraform                                                                                                                                                                                                     | Approved    | 9              | Rushikesh   |
-| 26  | Contract tests (JSON Schemas for every response) + `scripts/smoke.sh`                                                                                                                                                                                                      | In review   | 18, 15         | Shreya      |
+| 26  | Contract tests (JSON Schemas for every response) + `scripts/smoke.sh`                                                                                                                                                                                                      | Approved    | 18, 15         | Shreya      |
 | 27  | Docs (contract, architecture, runbook), README, GitHub Actions CI (lint, test, terraform fmt/validate)                                                                                                                                                                     | Not started | all            | Geethanjali |
 | 28  | Terraform: dedicated VPC, private subnets, S3 gateway + `ecr.api`/`ecr.dkr`/`logs` interface endpoints (one AZ), scanner / test app / endpoint security groups (replaces `vpc_id` + `subnet_ids`)                                                                          | Approved    | 4              | Rushikesh   |
 | 29  | `scripts/create_jwt_secret.ts` (random secret straight to SSM, `--rotate`) + tests                                                                                                                                                                                         | Approved    | 1              | Rushikesh   |
