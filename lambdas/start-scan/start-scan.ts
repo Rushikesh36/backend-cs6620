@@ -90,7 +90,7 @@ export async function startScan(jobId: string, deps: StartScanDeps): Promise<Sta
     throw err;
   }
 
-  logger.info("Scan queued", { jobId, scanType: job.scanType });
+  logger.info("Scan queued", { jobId, scanType: job.scanType, sentTo: "SQS scan queue" });
   return { jobId, status: "QUEUED" };
 }
 

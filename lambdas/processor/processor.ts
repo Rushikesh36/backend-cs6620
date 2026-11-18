@@ -81,6 +81,13 @@ export async function processStoppedTask(
   if (detail.lastStatus !== "STOPPED") return ignored("task is not stopped", jobId);
   if (!isValidJobId(jobId)) return ignored("task was not started for a scan job", jobId);
 
+  logger.info("Scanner task stopped event received", {
+    jobId,
+    receivedFrom: "EventBridge",
+    stopCode: detail.stopCode,
+    stoppedReason: detail.stoppedReason,
+    containerExitCodes: detail.containers?.map((c) => c.exitCode),
+  });
   const record = await deps.getJob(jobId);
   if (!record) return ignored("no such job", jobId);
   let scan;
